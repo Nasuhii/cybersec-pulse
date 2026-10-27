@@ -14,7 +14,7 @@ const VIEW_TYPE_CYBERSEC = 'cybersec-pulse-view';
 
 const DEFAULT_SETTINGS = {
   saveFolder: 'Areas/CyberSecurity/Haberler',
-  rotationIntervalSec: 6,
+  rotationIntervalSec: 300,
   maxItemsPerFeed: 15,
   enableCISA: true,
   enableBleeping: true,
@@ -115,6 +115,12 @@ class CyberSecPulsePlugin extends Plugin {
 
   async saveSettings() {
     await this.saveData(this.settings);
+    const leaves = this.app.workspace.getLeavesOfType(VIEW_TYPE_CYBERSEC);
+    for (const leaf of leaves) {
+      if (leaf.view && typeof leaf.view.startRotatorTimer === 'function') {
+        leaf.view.startRotatorTimer();
+      }
+    }
   }
 }
 
@@ -268,8 +274,8 @@ class CyberSecPulseView extends ItemView {
   // --- Rotator Engine ---
   startRotatorTimer() {
     this.stopRotatorTimer();
-    const intervalMs = (this.plugin.settings.rotationIntervalSec || 6) * 1000;
-    const stepMs = 100;
+    const intervalMs = (this.plugin.settings.rotationIntervalSec || 300) * 1000;
+    const stepMs = 200;
     const increment = 100 / (intervalMs / stepMs);
 
     this.timerInterval = setInterval(() => {
@@ -848,15 +854,29 @@ class CyberSecPulseSettingTab extends PluginSettingTab {
         }));
 
     new Setting(containerEl)
-      .setName('Rotation Interval (Seconds)')
-      .setDesc('How many seconds each headline stays before rotating')
-      .addSlider(slider => slider
-        .setLimits(3, 15, 1)
-        .setValue(this.plugin.settings.rotationIntervalSec || 6)
-        .setDynamicTooltip()
+      .setName('Haber Değişim Süresi (Rotation Interval)')
+      .setDesc('Her haber kartının ekranda kalma süresi (Varsayılan: 5 Dakika / 300 Saniye)')
+      .addDropdown(drop => drop
+        .addOption('30', '30 Saniye')
+        .addOption('60', '1 Dakika')
+        .addOption('180', '3 Dakika')
+        .addOption('300', '5 Dakika (Varsayılan)')
+        .addOption('600', '10 Dakika')
+        .addOption('900', '15 Dakika')
+        .setValue(String(this.plugin.settings.rotationIntervalSec || 300))
         .onChange(async (val) => {
-          this.plugin.settings.rotationIntervalSec = val;
+          this.plugin.settings.rotationIntervalSec = parseInt(val, 10) || 300;
           await this.plugin.saveSettings();
+        }))
+      .addText(text => text
+        .setPlaceholder('Örn: 300')
+        .setValue(String(this.plugin.settings.rotationIntervalSec || 300))
+        .onChange(async (val) => {
+          const num = parseInt(val, 10);
+          if (!isNaN(num) && num >= 5) {
+            this.plugin.settings.rotationIntervalSec = num;
+            await this.plugin.saveSettings();
+          }
         }));
 
     new Setting(containerEl)
