@@ -228,4 +228,4 @@ Navigate to **Settings → CyberSec Pulse**:
 ## 📄 License
 
 This project is licensed under the [MIT License](LICENSE).  
-Created and maintained by [Nasuhi](https://github.com/Nasuhii).
+Created and maintained by [Nasuhii](https://github.com/Nasuhii).
