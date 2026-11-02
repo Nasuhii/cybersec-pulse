@@ -21,7 +21,8 @@ A minimalist, high-yield cybersecurity threat radar, sequential news rotator, an
   - **PortSwigger Research**: In-depth web security research from the Burp Suite team.
   - **Reddit /r/netsec**: Community technical analyses and zero-day disclosures.
   - **USOM**: Official national cyber incident response alerts (TR CERT).
-- **1-Click Vault Note Clipper**: Save any threat report directly to your vault (`Areas/CyberSecurity/Haberler/`) formatted with YAML frontmatter, detected CVE codes, source URL, and structured review checklists.
+- **1-Click & Auto Vault Note Clipper**: Save threat reports automatically or on-demand directly to your vault (`Areas/CyberSecurity/Haberler/`) formatted with `TARGET DECK: cybersec`, YAML frontmatter, full web article extraction, detected CVE codes, source URL, threat review checklists, and auto-generated Anki flashcards.
+- **Background Intelligence Auto-Sync**: Automatically pulls new threat feeds in the background and writes them as Markdown notes into your vault without lifting a finger.
 - **Distraction-Free In-App Reader**: Read full writeups directly inside Obsidian without switching windows.
 
 ---

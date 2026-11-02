@@ -16,6 +16,10 @@ const DEFAULT_SETTINGS = {
   saveFolder: 'Areas/CyberSecurity/Haberler',
   rotationIntervalSec: 300,
   maxItemsPerFeed: 15,
+  autoSaveEnabled: true,
+  autoSaveLimit: 10,
+  autoSaveOnlyCVE: false,
+  fetchFullContent: true,
   enableCISA: true,
   enableBleeping: true,
   enableTHN: true,
@@ -86,7 +90,141 @@ class CyberSecPulsePlugin extends Plugin {
       callback: () => this.activateView()
     });
 
+    this.addCommand({
+      id: 'save-current-article',
+      name: 'Mevcut Haberi Not Olarak Kaydet (Save Current Article to Vault)',
+      callback: async () => {
+        const leaves = this.app.workspace.getLeavesOfType(VIEW_TYPE_CYBERSEC);
+        if (leaves.length > 0 && leaves[0].view) {
+          const view = leaves[0].view;
+          const article = view.filteredArticles[view.currentIndex];
+          if (article) {
+            await saveArticleAsNote(this.app, this, article, false);
+          }
+        }
+      }
+    });
+
+    this.addCommand({
+      id: 'save-all-feeds-to-vault',
+      name: 'Tüm Haber Akışını Vault\'a Not Olarak Kaydet (Auto-Clip All)',
+      callback: async () => {
+        const leaves = this.app.workspace.getLeavesOfType(VIEW_TYPE_CYBERSEC);
+        if (leaves.length > 0 && leaves[0].view) {
+          await leaves[0].view.saveAllArticles(leaves[0].view.filteredArticles, false);
+        } else {
+          await this.autoFetchAndSaveAll(false);
+        }
+      }
+    });
+
+    this.addCommand({
+      id: 'fetch-and-auto-save',
+      name: 'Haberleri Yenile ve Otomatik Not Al (Refresh & Auto-Save)',
+      callback: async () => {
+        await this.autoFetchAndSaveAll(false);
+      }
+    });
+
     this.addSettingTab(new CyberSecPulseSettingTab(this.app, this));
+
+    // Periodic background auto-sync (every 30 minutes)
+    this.registerInterval(
+      window.setInterval(async () => {
+        if (this.settings.autoSaveEnabled) {
+          await this.autoFetchAndSaveAll(true);
+        }
+      }, 30 * 60 * 1000)
+    );
+  }
+
+  async autoFetchAndSaveAll(isAuto = false) {
+    try {
+      const leaves = this.app.workspace.getLeavesOfType(VIEW_TYPE_CYBERSEC);
+      if (leaves.length > 0 && leaves[0].view) {
+        await leaves[0].view.fetchAllFeeds();
+      } else {
+        // Run background fetch when sidebar panel is not open
+        const articles = [];
+        for (const feed of FEEDS) {
+          if (!this.isFeedEnabled(feed.id)) continue;
+          try {
+            if (feed.type === 'json' && feed.id === 'cisa') {
+              const res = await requestUrl({ url: feed.url });
+              const data = res.json;
+              if (data && data.vulnerabilities) {
+                const items = data.vulnerabilities.slice(-this.settings.maxItemsPerFeed).reverse();
+                articles.push(...items.map(v => ({
+                  id: v.cveID,
+                  title: `${v.cveID}: ${v.vulnerabilityName || v.shortDescription.substring(0, 70)}`,
+                  description: v.shortDescription + (v.requiredAction ? ` (Action: ${v.requiredAction})` : ''),
+                  link: `https://nvd.nist.gov/vuln/detail/${v.cveID}`,
+                  source: feed.name,
+                  sourceId: feed.id,
+                  sourceCode: feed.code,
+                  date: v.dateAdded,
+                  cves: [v.cveID]
+                })));
+              }
+            } else if (feed.type === 'rss') {
+              const res = await requestUrl({ url: feed.url });
+              const parser = new DOMParser();
+              const xml = parser.parseFromString(res.text, 'text/xml');
+              const itemNodes = xml.querySelectorAll('item, entry');
+              const limit = Math.min(itemNodes.length, this.settings.maxItemsPerFeed);
+              for (let i = 0; i < limit; i++) {
+                const node = itemNodes[i];
+                const title = node.querySelector('title')?.textContent?.trim() || 'Untitled';
+                let link = node.querySelector('link')?.textContent?.trim() || '';
+                if (!link && node.querySelector('link')?.getAttribute('href')) {
+                  link = node.querySelector('link').getAttribute('href');
+                }
+                const rawDesc = node.querySelector('description, summary, content')?.textContent?.trim() || '';
+                const cleanDesc = sanitizeSnippet(rawDesc, 180);
+                const pubDate = node.querySelector('pubDate, updated, dc\\:date')?.textContent?.trim() || new Date().toISOString();
+                const cveMatches = (title + ' ' + rawDesc).match(/CVE-\d{4}-\d{4,7}/gi) || [];
+                articles.push({
+                  id: link || title,
+                  title,
+                  description: cleanDesc,
+                  link,
+                  source: feed.name,
+                  sourceId: feed.id,
+                  sourceCode: feed.code,
+                  date: pubDate,
+                  cves: [...new Set(cveMatches.map(c => c.toUpperCase()))]
+                });
+              }
+            }
+          } catch (e) {
+            console.warn(`[CyberSec Pulse] ${feed.name} background fetch failed:`, e);
+          }
+        }
+        articles.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+        const limit = this.settings.autoSaveLimit || 10;
+        let savedCount = 0;
+        for (const article of articles.slice(0, limit)) {
+          if (this.settings.autoSaveOnlyCVE && (!article.cves || article.cves.length === 0)) continue;
+          const saved = await saveArticleAsNote(this.app, this, article, true);
+          if (saved) savedCount++;
+        }
+        if (savedCount > 0) {
+          new Notice(`🛡️ CyberSec Pulse: ${savedCount} yeni tehdit haberi otomatik not alındı!`);
+        }
+      }
+    } catch (err) {
+      console.warn('[CyberSec Pulse] Auto-sync error:', err);
+    }
+  }
+
+  isFeedEnabled(feedId) {
+    if (feedId === 'cisa') return this.settings.enableCISA;
+    if (feedId === 'bleeping') return this.settings.enableBleeping;
+    if (feedId === 'thn') return this.settings.enableTHN;
+    if (feedId === 'portswigger') return this.settings.enablePortSwigger;
+    if (feedId === 'netsec') return this.settings.enableNetsec;
+    if (feedId === 'usom') return this.settings.enableUSOM;
+    return true;
   }
 
   async activateView() {
@@ -192,6 +330,16 @@ class CyberSecPulseView extends ItemView {
     });
     setIcon(this.pauseBtn, 'pause');
     this.pauseBtn.onclick = () => this.togglePause();
+
+    // Save All to Vault button (Auto-Clip All)
+    const saveAllBtn = controls.createEl('button', {
+      cls: 'cybersec-icon-btn',
+      attr: { 'aria-label': 'Tüm Haberleri Vault\'a Not Olarak Kaydet (Auto-Clip All)' }
+    });
+    setIcon(saveAllBtn, 'folder-down');
+    saveAllBtn.onclick = async () => {
+      await this.saveAllArticles(this.filteredArticles, false);
+    };
 
     // Refresh button
     const refreshBtn = controls.createEl('button', {
@@ -577,6 +725,41 @@ class CyberSecPulseView extends ItemView {
     this.isLoading = false;
     this.updateStatusBadge();
     this.filterAndRender();
+
+    // Auto-save incoming articles if enabled
+    if (this.plugin.settings.autoSaveEnabled) {
+      await this.saveAllArticles(this.articles, true);
+    }
+  }
+
+  async saveAllArticles(articlesToSave, isAuto = false) {
+    if (!articlesToSave || articlesToSave.length === 0) {
+      if (!isAuto) new Notice('Kaydedilecek haber akışı bulunamadı.');
+      return 0;
+    }
+
+    const limit = isAuto ? (this.plugin.settings.autoSaveLimit || 10) : Math.min(articlesToSave.length, 30);
+    let savedCount = 0;
+
+    if (!isAuto) {
+      new Notice(`📥 ${Math.min(articlesToSave.length, limit)} haber inceleniyor ve vault'a aktarılıyor...`);
+    }
+
+    const targetList = articlesToSave.slice(0, limit);
+    for (const article of targetList) {
+      if (isAuto && this.plugin.settings.autoSaveOnlyCVE && (!article.cves || article.cves.length === 0)) {
+        continue;
+      }
+      const saved = await saveArticleAsNote(this.app, this.plugin, article, true);
+      if (saved) savedCount++;
+    }
+
+    if (savedCount > 0) {
+      new Notice(`🛡️ CyberSec Pulse: ${savedCount} yeni tehdit haberi not olarak kaydedildi! (${this.plugin.settings.saveFolder})`);
+    } else if (!isAuto) {
+      new Notice('Seçili haberlerin tamamı zaten vault\'ta mevcut.');
+    }
+    return savedCount;
   }
 
   isFeedEnabled(feedId) {
@@ -734,16 +917,16 @@ class ArticleReaderModal extends Modal {
 }
 
 // Save Article as Markdown Note
-async function saveArticleAsNote(app, plugin, article) {
+async function saveArticleAsNote(app, plugin, article, silent = false) {
   try {
     const dateStr = new Date().toISOString().split('T')[0];
     const safeTitle = article.title
       .replace(/[\\/:*?"<>|]/g, '')
       .replace(/\s+/g, ' ')
       .trim()
-      .substring(0, 60);
+      .substring(0, 70);
 
-    const folderPath = normalizePath(plugin.settings.saveFolder);
+    const folderPath = normalizePath(plugin.settings.saveFolder || 'Areas/CyberSecurity/Haberler');
     const filePath = normalizePath(`${folderPath}/${safeTitle}.md`);
 
     const folderExists = app.vault.getAbstractFileByPath(folderPath);
@@ -753,8 +936,41 @@ async function saveArticleAsNote(app, plugin, article) {
 
     const fileExists = app.vault.getAbstractFileByPath(filePath);
     if (fileExists) {
-      new Notice(`Note already exists: ${safeTitle}`);
-      return;
+      if (!silent) new Notice(`Not zaten mevcut: ${safeTitle}`);
+      return false;
+    }
+
+    // Try fetching full web article text if enabled
+    let fullArticleText = '';
+    if (plugin.settings.fetchFullContent && article.link && article.link.startsWith('http')) {
+      try {
+        const res = await requestUrl({ url: article.link });
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(res.text, 'text/html');
+
+        doc.querySelectorAll('script, style, iframe, nav, header, footer, noscript, .advertisement, .sidebar, .comments, .social-share, .related-posts, form').forEach(el => el.remove());
+
+        const articleNode = doc.querySelector('article') || doc.querySelector('.article-body') || doc.querySelector('.post-content') || doc.querySelector('.entry-content') || doc.querySelector('main') || doc.body;
+
+        if (articleNode) {
+          const elements = Array.from(articleNode.querySelectorAll('p, h2, h3, blockquote, pre, code'));
+          const extracted = [];
+          for (const el of elements) {
+            const t = el.textContent.trim();
+            if (!t || t.length < 20) continue;
+            if (el.tagName === 'H2') extracted.push(`\n### ${t}\n`);
+            else if (el.tagName === 'H3') extracted.push(`\n#### ${t}\n`);
+            else if (el.tagName === 'BLOCKQUOTE') extracted.push(`> ${t}`);
+            else extracted.push(t);
+            if (extracted.length >= 15) break;
+          }
+          if (extracted.length > 0) {
+            fullArticleText = extracted.join('\n\n');
+          }
+        }
+      } catch (scrapeErr) {
+        // Fallback gracefully
+      }
     }
 
     const frontmatter = [
@@ -763,6 +979,7 @@ async function saveArticleAsNote(app, plugin, article) {
       `date_saved: ${dateStr}`,
       `source: "${article.source}"`,
       `url: "${article.link}"`,
+      `cves: [${article.cves.map(c => `"${c}"`).join(', ')}]`,
       `tags:`,
       `  - cybersec/intel`,
       `  - source/${article.sourceId}`,
@@ -771,29 +988,59 @@ async function saveArticleAsNote(app, plugin, article) {
       ''
     ].join('\n');
 
+    const cleanDesc = article.description ? article.description.replace(/"/g, '') : 'Detaylı özet bulunmuyor.';
+
     const noteBody = [
+      'TARGET DECK: cybersec',
+      '',
       frontmatter,
-      `# ${article.title}`,
+      `# 🛡️ ${article.title}`,
       '',
-      `- **Source**: [${article.source}](${article.link})`,
-      `- **Date**: ${dateStr}`,
-      article.cves.length > 0 ? `- **CVEs**: ${article.cves.map(c => `\`${c}\``).join(', ')}` : '',
+      `> [!INFO] 📌 Tehdit İstihbarat Özeti`,
+      `> - **Kaynak / Portal:** [${article.source}](${article.link})`,
+      `> - **Tarih:** ${dateStr}`,
+      article.cves.length > 0 ? `> - **Tespit Edilen CVE:** ${article.cves.map(c => `\`${c}\``).join(', ')}` : '',
       '',
-      '## Overview',
-      article.description || 'No description provided.',
+      '## ⚡ Hızlı Özet (Overview)',
+      article.description || 'Detaylı özet bulunmuyor.',
       '',
       '---',
-      '## Threat Assessment & Notes',
-      '- [ ] Vulnerability affects internal or client assets?',
-      '- [ ] Exploit PoC available / actively exploited in the wild?',
-      '- [ ] Mitigation or patch verified?'
-    ].filter(Boolean).join('\n');
+      '',
+      '## 📰 Haberin Detayları & Teknik İnceleme',
+      fullArticleText || article.description || 'Haberin tam metni orijinal kaynak üzerinden incelenebilir.',
+      '',
+      '---',
+      '',
+      '## 🧑‍💻 SOC & Tehdit Analisti Değerlendirmesi',
+      '- [ ] Bu zafiyet veya tehdit kurum içi/müşteri varlıklarımızı (Asset) etkiliyor mu?',
+      '- [ ] Aktif istismar (Exploited in the wild / PoC) mevcut mu?',
+      '- [ ] Resmi yama (Patch) veya geçici savunma kuralı (WAF/Snort) mevcut mu?',
+      '- [ ] SIEM / EDR loglarında ilgili IoC (Tehdit Göstergesi) taraması yapıldı mı?',
+      '',
+      '---',
+      '',
+      '## 🃏 Anki Kartı',
+      '',
+      'START',
+      'Temel',
+      'TARGET DECK: cybersec',
+      `Ön: [Tehdit İstihbaratı] ${article.title.replace(/"/g, '')} zafiyetinin/olayının temel sebebi ve etkisi nedir?`,
+      `Geri: **Özet:** ${cleanDesc}<br>• **Kaynak:** ${article.source}${article.cves.length > 0 ? `<br>• **İlgili CVE:** ${article.cves.join(', ')}` : ''}`,
+      `Tags: from_obsidian, cybersec, threat_intel, ${article.sourceId}`,
+      'END'
+    ].filter(x => x !== undefined).join('\n');
 
     await app.vault.create(filePath, noteBody);
-    new Notice(`Saved note: ${safeTitle}`);
+    if (!silent) {
+      new Notice(`Not başarıyla kaydedildi: ${safeTitle}`);
+    }
+    return true;
   } catch (err) {
     console.error('[CyberSec Pulse] Save error:', err);
-    new Notice(`Could not save note: ${err.message}`);
+    if (!silent) {
+      new Notice(`Could not save note: ${err.message}`);
+    }
+    return false;
   }
 }
 
@@ -851,6 +1098,65 @@ class CyberSecPulseSettingTab extends PluginSettingTab {
         .onChange(async (value) => {
           this.plugin.settings.saveFolder = value.trim();
           await this.plugin.saveSettings();
+        }));
+
+    containerEl.createEl('h3', { text: 'Otomatik Not Alma ve Arşivleme (Auto-Clipper)' });
+
+    new Setting(containerEl)
+      .setName('Otomatik Not Kaydet (Auto-Save to Vault)')
+      .setDesc('Haber akışı tarandığında yeni tehdit raporlarını otomatik olarak vault içerisine Markdown notu olarak kaydeder')
+      .addToggle(toggle => toggle
+        .setValue(this.plugin.settings.autoSaveEnabled)
+        .onChange(async (val) => {
+          this.plugin.settings.autoSaveEnabled = val;
+          await this.plugin.saveSettings();
+        }));
+
+    new Setting(containerEl)
+      .setName('Haberin Tam Metnini Web\'den Çek (Fetch Full Web Content)')
+      .setDesc('Haber notu oluşturulurken orijinal web sayfasına bağlanıp makalenin tam metnini ve paragraflarını notun içine ekler')
+      .addToggle(toggle => toggle
+        .setValue(this.plugin.settings.fetchFullContent)
+        .onChange(async (val) => {
+          this.plugin.settings.fetchFullContent = val;
+          await this.plugin.saveSettings();
+        }));
+
+    new Setting(containerEl)
+      .setName('Otomatik Kaydetme Limiti (Auto-Save Limit)')
+      .setDesc('Her otomatik taramada en fazla kaç adet yeni haber not olarak kaydedilsin (Varsayılan: 10)')
+      .addSlider(slider => slider
+        .setLimits(1, 25, 1)
+        .setValue(this.plugin.settings.autoSaveLimit || 10)
+        .setDynamicTooltip()
+        .onChange(async (val) => {
+          this.plugin.settings.autoSaveLimit = val;
+          await this.plugin.saveSettings();
+        }));
+
+    new Setting(containerEl)
+      .setName('Yalnızca CVE İçerenleri Otomatik Kaydet (CVE Only)')
+      .setDesc('Açık olduğunda yalnızca resmi CVE kodu tespit edilen kritik zafiyetleri otomatik kaydeder')
+      .addToggle(toggle => toggle
+        .setValue(this.plugin.settings.autoSaveOnlyCVE)
+        .onChange(async (val) => {
+          this.plugin.settings.autoSaveOnlyCVE = val;
+          await this.plugin.saveSettings();
+        }));
+
+    new Setting(containerEl)
+      .setName('Tüm Akışı Şimdi Vault\'a Not Olarak Aktar')
+      .setDesc('Şu an yüklü olan tüm haber akışını hemen not olarak kaydet')
+      .addButton(btn => btn
+        .setButtonText('Şimdi Senkronize Et & Kaydet')
+        .setCta()
+        .onClick(async () => {
+          const leaves = this.app.workspace.getLeavesOfType(VIEW_TYPE_CYBERSEC);
+          if (leaves.length > 0 && leaves[0].view) {
+            await leaves[0].view.saveAllArticles(leaves[0].view.filteredArticles, false);
+          } else {
+            await this.plugin.autoFetchAndSaveAll(false);
+          }
         }));
 
     new Setting(containerEl)
