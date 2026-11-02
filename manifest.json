@@ -1,7 +1,7 @@
 {
   "id": "cybersec-pulse",
   "name": "CyberSec Pulse",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "minAppVersion": "0.15.0",
   "description": "Minimalist Cybersecurity Threat Radar, Breaking Feeds & 1-Click Vault Note Clipper.",
   "author": "Nasuhi",
