@@ -349,6 +349,24 @@
   background: var(--interactive-accent);
 }
 
+.cybersec-text-btn.save-action {
+  color: var(--text-accent);
+  background: rgba(var(--interactive-accent-rgb), 0.1);
+  padding: 3px 8px;
+  font-weight: 600;
+  border-radius: 4px;
+}
+
+.cybersec-text-btn.save-action:hover {
+  background: var(--interactive-accent);
+  color: var(--text-on-accent);
+}
+
+.cybersec-text-btn.save-action.is-saved {
+  color: #10b981;
+  background: rgba(16, 185, 129, 0.12);
+}
+
 .cybersec-text-btn svg {
   width: 12px;
   height: 12px;
@@ -501,6 +519,47 @@
   font-weight: 600;
 }
 
+.cybersec-wire-action {
+  display: flex;
+  align-items: center;
+  margin-left: auto;
+  opacity: 0.35;
+  transition: opacity 0.15s ease, transform 0.15s ease;
+}
+
+.cybersec-wire-row:hover .cybersec-wire-action {
+  opacity: 1;
+}
+
+.wire-save-btn {
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  padding: 3px 5px;
+  cursor: pointer;
+  color: var(--text-muted);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+}
+
+.wire-save-btn:hover {
+  background: var(--background-modifier-hover);
+  color: var(--text-accent);
+  border-color: var(--background-modifier-border);
+}
+
+.wire-save-btn.is-saved {
+  color: #10b981 !important;
+  opacity: 1 !important;
+}
+
+.wire-save-btn svg {
+  width: 13px;
+  height: 13px;
+}
+
 .cybersec-wire-empty {
   text-align: center;
   padding: 30px 10px;
@@ -537,8 +596,52 @@
 
 .cybersec-reader-actions {
   display: flex;
-  gap: 8px;
+  align-items: center;
+  gap: 10px;
   margin-bottom: 20px;
+}
+
+.cybersec-reader-btn-save {
+  background: var(--interactive-accent);
+  color: var(--text-on-accent);
+  font-weight: 600;
+  padding: 6px 14px;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.82em;
+  transition: all 0.15s ease;
+}
+
+.cybersec-reader-btn-save:hover {
+  filter: brightness(1.1);
+}
+
+.cybersec-reader-btn-save.is-saved {
+  background: #10b981;
+  color: white;
+}
+
+.cybersec-reader-btn-open {
+  background: var(--background-modifier-hover);
+  color: var(--text-normal);
+  padding: 6px 12px;
+  border-radius: 6px;
+  border: 1px solid var(--background-modifier-border);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.82em;
+  transition: all 0.15s ease;
+}
+
+.cybersec-reader-btn-open:hover {
+  border-color: var(--text-accent);
+  color: var(--text-accent);
 }
 
 .cybersec-reader-content {

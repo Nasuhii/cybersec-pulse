@@ -16,7 +16,7 @@ const DEFAULT_SETTINGS = {
   saveFolder: 'Areas/CyberSecurity/Haberler',
   rotationIntervalSec: 300,
   maxItemsPerFeed: 15,
-  autoSaveEnabled: true,
+  autoSaveEnabled: false,
   autoSaveLimit: 10,
   autoSaveOnlyCVE: false,
   fetchFullContent: true,
@@ -331,16 +331,6 @@ class CyberSecPulseView extends ItemView {
     setIcon(this.pauseBtn, 'pause');
     this.pauseBtn.onclick = () => this.togglePause();
 
-    // Save All to Vault button (Auto-Clip All)
-    const saveAllBtn = controls.createEl('button', {
-      cls: 'cybersec-icon-btn',
-      attr: { 'aria-label': 'Tüm Haberleri Vault\'a Not Olarak Kaydet (Auto-Clip All)' }
-    });
-    setIcon(saveAllBtn, 'folder-down');
-    saveAllBtn.onclick = async () => {
-      await this.saveAllArticles(this.filteredArticles, false);
-    };
-
     // Refresh button
     const refreshBtn = controls.createEl('button', {
       cls: 'cybersec-icon-btn',
@@ -595,11 +585,36 @@ class CyberSecPulseView extends ItemView {
     };
 
     // Save action
-    const saveBtn = actions.createEl('button', { cls: 'cybersec-text-btn accent' });
-    setIcon(saveBtn, 'bookmark');
-    saveBtn.createSpan({ text: 'save' });
-    saveBtn.onclick = async () => {
-      await saveArticleAsNote(this.app, this.plugin, article);
+    const isSaved = isArticleSaved(this.app, this.plugin, article);
+    const saveBtn = actions.createEl('button', {
+      cls: `cybersec-text-btn save-action ${isSaved ? 'is-saved' : ''}`
+    });
+    setIcon(saveBtn, isSaved ? 'check' : 'bookmark');
+    const saveText = saveBtn.createSpan({ text: isSaved ? 'Kaydedildi' : 'Not Al' });
+    saveBtn.onclick = async (e) => {
+      e.stopPropagation();
+      if (saveBtn.hasClass('is-saved')) {
+        const safeTitle = article.title.replace(/[\\/:*?"<>|]/g, '').replace(/\s+/g, ' ').trim().substring(0, 70);
+        const filePath = normalizePath(`${this.plugin.settings.saveFolder || 'Areas/CyberSecurity/Haberler'}/${safeTitle}.md`);
+        const file = this.app.vault.getAbstractFileByPath(filePath);
+        if (file) {
+          this.app.workspace.getLeaf(false).openFile(file);
+          new Notice(`📖 Not açıldı: ${safeTitle}`);
+        }
+        return;
+      }
+      saveText.setText('Kaydediliyor...');
+      setIcon(saveBtn, 'loader');
+      const res = await saveArticleAsNote(this.app, this.plugin, article);
+      if (res && res.success) {
+        saveBtn.addClass('is-saved');
+        saveText.setText('Kaydedildi');
+        setIcon(saveBtn, 'check');
+        this.renderWireList();
+      } else {
+        saveText.setText('Not Al');
+        setIcon(saveBtn, 'bookmark');
+      }
     };
 
     // External link action
@@ -625,6 +640,7 @@ class CyberSecPulseView extends ItemView {
     this.wireRowEls = [];
 
     this.filteredArticles.forEach((article, index) => {
+      const isSaved = isArticleSaved(this.app, this.plugin, article);
       const row = this.wireList.createEl('div', {
         cls: `cybersec-wire-row ${index === this.currentIndex ? 'is-active' : ''}`
       });
@@ -650,8 +666,47 @@ class CyberSecPulseView extends ItemView {
 
       body.createEl('p', { cls: 'cybersec-wire-title', text: article.title });
 
+      // Quick 1-click Bookmark / Save Button
+      const wireAction = row.createEl('div', { cls: 'cybersec-wire-action' });
+      const wireSaveBtn = wireAction.createEl('button', {
+        cls: `cybersec-icon-btn wire-save-btn ${isSaved ? 'is-saved' : ''}`,
+        attr: { 'aria-label': isSaved ? 'Vault\'ta Kayıtlı (Tıkla ve Notu Aç)' : 'Bu Haberi Not Olarak Kaydet' }
+      });
+      setIcon(wireSaveBtn, isSaved ? 'check' : 'bookmark');
+
+      wireSaveBtn.onclick = async (e) => {
+        e.stopPropagation();
+        if (wireSaveBtn.hasClass('is-saved')) {
+          const safeTitle = article.title.replace(/[\\/:*?"<>|]/g, '').replace(/\s+/g, ' ').trim().substring(0, 70);
+          const filePath = normalizePath(`${this.plugin.settings.saveFolder || 'Areas/CyberSecurity/Haberler'}/${safeTitle}.md`);
+          const file = this.app.vault.getAbstractFileByPath(filePath);
+          if (file) {
+            this.app.workspace.getLeaf(false).openFile(file);
+            new Notice(`📖 Not açıldı: ${safeTitle}`);
+          }
+          return;
+        }
+
+        setIcon(wireSaveBtn, 'loader');
+        const res = await saveArticleAsNote(this.app, this.plugin, article);
+        if (res && res.success) {
+          wireSaveBtn.addClass('is-saved');
+          setIcon(wireSaveBtn, 'check');
+          wireSaveBtn.setAttribute('aria-label', 'Vault\'ta Kayıtlı (Tıkla ve Notu Aç)');
+          if (index === this.currentIndex) {
+            this.renderCurrentArticle();
+          }
+        } else {
+          setIcon(wireSaveBtn, 'bookmark');
+        }
+      };
+
       row.onclick = () => {
         this.selectArticleByIndex(index);
+      };
+
+      row.ondblclick = () => {
+        new ArticleReaderModal(this.app, this.plugin, article).open();
       };
 
       this.wireRowEls.push(row);
@@ -835,12 +890,26 @@ class CyberSecPulseView extends ItemView {
   }
 }
 
+// Helper: Check if article is already saved in Vault
+function isArticleSaved(app, plugin, article) {
+  if (!article || !article.title) return false;
+  const safeTitle = article.title
+    .replace(/[\\/:*?"<>|]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .substring(0, 70);
+  const folderPath = normalizePath(plugin.settings.saveFolder || 'Areas/CyberSecurity/Haberler');
+  const filePath = normalizePath(`${folderPath}/${safeTitle}.md`);
+  return app.vault.getAbstractFileByPath(filePath) !== null;
+}
+
 // In-App Article Reader Modal
 class ArticleReaderModal extends Modal {
   constructor(app, plugin, article) {
     super(app);
     this.plugin = plugin;
     this.article = article;
+    this.extractedArticleText = '';
   }
 
   async onOpen() {
@@ -867,11 +936,67 @@ class ArticleReaderModal extends Modal {
     // Actions
     const actions = contentEl.createEl('div', { cls: 'cybersec-reader-actions' });
 
-    const saveBtn = actions.createEl('button', { cls: 'cybersec-text-btn accent' });
-    setIcon(saveBtn, 'bookmark');
-    saveBtn.createSpan({ text: 'Save to Vault' });
+    const isSaved = isArticleSaved(this.app, this.plugin, this.article);
+
+    const saveBtn = actions.createEl('button', {
+      cls: `cybersec-reader-btn-save ${isSaved ? 'is-saved' : ''}`
+    });
+    setIcon(saveBtn, isSaved ? 'check' : 'bookmark');
+    const saveBtnText = saveBtn.createSpan({ text: isSaved ? 'Vault\'ta Kayıtlı' : 'Bu Haberi Not Al' });
+
+    let openBtn = null;
+    const addOpenBtn = (file) => {
+      if (openBtn) return;
+      openBtn = actions.createEl('button', { cls: 'cybersec-reader-btn-open' });
+      setIcon(openBtn, 'file-text');
+      openBtn.createSpan({ text: 'Notu Aç (Editörde)' });
+      openBtn.onclick = () => {
+        if (file) {
+          this.app.workspace.getLeaf(false).openFile(file);
+          this.close();
+        }
+      };
+    };
+
+    if (isSaved) {
+      const safeTitle = this.article.title.replace(/[\\/:*?"<>|]/g, '').replace(/\s+/g, ' ').trim().substring(0, 70);
+      const filePath = normalizePath(`${this.plugin.settings.saveFolder || 'Areas/CyberSecurity/Haberler'}/${safeTitle}.md`);
+      const file = this.app.vault.getAbstractFileByPath(filePath);
+      if (file) addOpenBtn(file);
+    }
+
     saveBtn.onclick = async () => {
-      await saveArticleAsNote(this.app, this.plugin, this.article);
+      if (saveBtn.hasClass('is-saved')) {
+        const safeTitle = this.article.title.replace(/[\\/:*?"<>|]/g, '').replace(/\s+/g, ' ').trim().substring(0, 70);
+        const filePath = normalizePath(`${this.plugin.settings.saveFolder || 'Areas/CyberSecurity/Haberler'}/${safeTitle}.md`);
+        const file = this.app.vault.getAbstractFileByPath(filePath);
+        if (file) {
+          this.app.workspace.getLeaf(false).openFile(file);
+          this.close();
+        }
+        return;
+      }
+
+      saveBtnText.setText('Kaydediliyor...');
+      setIcon(saveBtn, 'loader');
+      const res = await saveArticleAsNote(this.app, this.plugin, this.article, false, this.extractedArticleText || '');
+      if (res && res.success) {
+        saveBtn.addClass('is-saved');
+        saveBtnText.setText('Kaydedildi ✓');
+        setIcon(saveBtn, 'check');
+        if (res.file) addOpenBtn(res.file);
+        // Refresh open views
+        const leaves = this.app.workspace.getLeavesOfType(VIEW_TYPE_CYBERSEC);
+        for (const leaf of leaves) {
+          if (leaf.view && typeof leaf.view.renderCurrentArticle === 'function') {
+            leaf.view.renderCurrentArticle();
+            leaf.view.renderWireList();
+          }
+        }
+      } else {
+        saveBtnText.setText('Bu Haberi Not Al');
+        setIcon(saveBtn, 'bookmark');
+      }
     };
 
     const extBtn = actions.createEl('button', { cls: 'cybersec-text-btn' });
@@ -895,6 +1020,20 @@ class ArticleReaderModal extends Modal {
       bodyEl.empty();
       if (articleNode) {
         bodyEl.innerHTML = articleNode.innerHTML;
+        const elements = Array.from(articleNode.querySelectorAll('p, h2, h3, blockquote, pre, code'));
+        const extracted = [];
+        for (const el of elements) {
+          const t = el.textContent.trim();
+          if (!t || t.length < 20) continue;
+          if (el.tagName === 'H2') extracted.push(`\n### ${t}\n`);
+          else if (el.tagName === 'H3') extracted.push(`\n#### ${t}\n`);
+          else if (el.tagName === 'BLOCKQUOTE') extracted.push(`> ${t}`);
+          else extracted.push(t);
+          if (extracted.length >= 15) break;
+        }
+        if (extracted.length > 0) {
+          this.extractedArticleText = extracted.join('\n\n');
+        }
       } else {
         bodyEl.innerHTML = `<p>${this.article.description || 'no detailed text available.'}</p>`;
       }
@@ -917,7 +1056,7 @@ class ArticleReaderModal extends Modal {
 }
 
 // Save Article as Markdown Note
-async function saveArticleAsNote(app, plugin, article, silent = false) {
+async function saveArticleAsNote(app, plugin, article, silent = false, cachedText = '') {
   try {
     const dateStr = new Date().toISOString().split('T')[0];
     const safeTitle = article.title
@@ -936,13 +1075,13 @@ async function saveArticleAsNote(app, plugin, article, silent = false) {
 
     const fileExists = app.vault.getAbstractFileByPath(filePath);
     if (fileExists) {
-      if (!silent) new Notice(`Not zaten mevcut: ${safeTitle}`);
-      return false;
+      if (!silent) new Notice(`⚠️ Bu haber zaten kayıtlı: ${safeTitle}`);
+      return { success: true, alreadyExists: true, filePath, file: fileExists };
     }
 
-    // Try fetching full web article text if enabled
-    let fullArticleText = '';
-    if (plugin.settings.fetchFullContent && article.link && article.link.startsWith('http')) {
+    // Try fetching full web article text if enabled and not already provided
+    let fullArticleText = cachedText || '';
+    if (!fullArticleText && plugin.settings.fetchFullContent && article.link && article.link.startsWith('http')) {
       try {
         const res = await requestUrl({ url: article.link });
         const parser = new DOMParser();
@@ -984,16 +1123,16 @@ async function saveArticleAsNote(app, plugin, article, silent = false) {
       `  - cybersec/intel`,
       `  - source/${article.sourceId}`,
       ...article.cves.map(c => `  - vulnerability/${c}`),
-      '---',
-      ''
+      '---'
     ].join('\n');
 
     const cleanDesc = article.description ? article.description.replace(/"/g, '') : 'Detaylı özet bulunmuyor.';
 
     const noteBody = [
+      frontmatter,
+      '',
       'TARGET DECK: cybersec',
       '',
-      frontmatter,
       `# 🛡️ ${article.title}`,
       '',
       `> [!INFO] 📌 Tehdit İstihbarat Özeti`,
@@ -1030,17 +1169,17 @@ async function saveArticleAsNote(app, plugin, article, silent = false) {
       'END'
     ].filter(x => x !== undefined).join('\n');
 
-    await app.vault.create(filePath, noteBody);
+    const createdFile = await app.vault.create(filePath, noteBody);
     if (!silent) {
-      new Notice(`Not başarıyla kaydedildi: ${safeTitle}`);
+      new Notice(`🛡️ [CyberSec Pulse] Not başarıyla kaydedildi:\n${safeTitle}`);
     }
-    return true;
+    return { success: true, alreadyExists: false, filePath, file: createdFile };
   } catch (err) {
     console.error('[CyberSec Pulse] Save error:', err);
     if (!silent) {
-      new Notice(`Could not save note: ${err.message}`);
+      new Notice(`Not kaydedilemedi: ${err.message}`);
     }
-    return false;
+    return { success: false, error: err.message };
   }
 }
 
