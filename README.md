@@ -1,13 +1,42 @@
 # CyberSec Pulse 🛡️
 
-[![Obsidian](https://img.shields.io/badge/Obsidian-Plugin-7C3AED?logo=obsidian&logoColor=white)](https://obsidian.md)
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![Latest Release](https://img.shields.io/badge/Release-v1.0.2-emerald.svg)](https://github.com/Nasuhii/cybersec-pulse/releases)
-[![GitHub stars](https://img.shields.io/github/stars/Nasuhii/cybersec-pulse?style=flat&color=yellow)](https://github.com/Nasuhii/cybersec-pulse/stargazers)
+<p align="center">
+  <a href="https://obsidian.md"><img src="https://img.shields.io/badge/Obsidian-Plugin-7C3AED?logo=obsidian&logoColor=white" alt="Obsidian Plugin"></a>
+  <a href="https://github.com/Nasuhii/cybersec-pulse/releases/latest"><img src="https://img.shields.io/github/v/release/Nasuhii/cybersec-pulse?color=10b981&label=Release" alt="Latest Release"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="License: MIT"></a>
+  <a href="https://github.com/Nasuhii/cybersec-pulse/stargazers"><img src="https://img.shields.io/github/stars/Nasuhii/cybersec-pulse?style=flat&color=yellow" alt="GitHub stars"></a>
+  <a href="https://github.com/Nasuhii/cybersec-pulse/issues"><img src="https://img.shields.io/github/issues/Nasuhii/cybersec-pulse?color=orange" alt="GitHub issues"></a>
+</p>
 
-A minimalist, high-yield **Cybersecurity Threat Radar, Sequential News Wire, and 1-Click Vault Note Clipper** built natively for **Obsidian**.
+<p align="center">
+  <b>Minimalist Cybersecurity Threat Radar, Sequential News Wire & 1-Click Vault Note Clipper for Obsidian.</b><br>
+  <i>Sıfır dikkat dağınıklığı, zengin CVE istihbaratı ve tek tıkla kasanıza Anki kartlı not alma motoru.</i>
+</p>
 
-Stay informed on zero-days, ransomware campaigns, and actively exploited vulnerabilities while conducting research, without leaving your Obsidian workspace.
+<p align="center">
+  <a href="#-key-capabilities">⚡ Capabilities</a> •
+  <a href="#-how-to-install-kurulum-rehberi">📦 Installation</a> •
+  <a href="#-how-to-use">🚀 How to Use</a> •
+  <a href="#️-settings--customization">⚙️ Settings</a> •
+  <a href="#-türkçe-kurulum-özeti">🇹🇷 Türkçe Rehber</a> •
+  <a href="https://github.com/Nasuhii/cybersec-pulse/releases/latest">📥 Download v1.0.2</a>
+</p>
+
+---
+
+## 📑 Quick Navigation (Hızlı Bağlantılar)
+
+- [⚡ Key Capabilities](#-key-capabilities)
+- [🖥️ User Interface Overview](#️-user-interface-overview)
+- [📦 How to Install (Kurulum Rehberi)](#-how-to-install-kurulum-rehberi)
+  - [🌟 Method 1: Via BRAT (Recommended)](#-method-1-via-brat-recommended---automatic-updates)
+  - [📂 Method 2: Manual Installation (Direct Download Links)](#-method-2-manual-installation-github-release)
+  - [💻 Method 3: One-Line Terminal / Git Clone](#-method-3-one-line-terminal--git-clone-linux--macos--git-bash)
+- [🚀 How to Use](#-how-to-use)
+- [📝 Generated Note Format](#-generated-note-format)
+- [⚙️ Settings & Customization](#️-settings--customization)
+- [🇹🇷 Türkçe Kurulum Özeti](#-türkçe-kurulum-özeti)
+- [📄 License & Author](#-license--author)
 
 ---
 
@@ -22,12 +51,12 @@ Stay informed on zero-days, ransomware campaigns, and actively exploited vulnera
   - Automatically formats notes with YAML frontmatter, source metadata, detected **CVE IDs**, full extracted article body, threat analysis checklists, and **Obsidian-to-Anki flashcards** (`TARGET DECK: cybersec`).
   - **Live State Awareness**: Saved articles show a green checkmark (`Kaydedildi`). Clicking again opens the existing note directly in your editor!
 - 🌐 **6 Verified Intelligence Feeds**:
-  - **CISA KEV**: Actively exploited vulnerabilities in the wild (Official JSON API).
-  - **BleepingComputer**: Breaking cybersecurity news, breaches, and ransomware alerts.
-  - **The Hacker News (THN)**: Global infosec journalism and vulnerability coverage.
-  - **PortSwigger Research**: Web application security and Burp Suite research papers.
-  - **Reddit /r/netsec**: Community technical analyses and zero-day disclosures.
-  - **USOM**: Turkish National Cyber Incident Response Center alerts.
+  - [CISA KEV](https://www.cisa.gov/known-exploited-vulnerabilities-catalog): Actively exploited vulnerabilities in the wild (Official JSON API).
+  - [BleepingComputer](https://www.bleepingcomputer.com/): Breaking cybersecurity news, breaches, and ransomware alerts.
+  - [The Hacker News (THN)](https://thehackernews.com/): Global infosec journalism and vulnerability coverage.
+  - [PortSwigger Research](https://portswigger.net/research): Web application security and Burp Suite research papers.
+  - [Reddit /r/netsec](https://www.reddit.com/r/netsec/): Community technical analyses and zero-day disclosures.
+  - [USOM](https://www.usom.gov.tr/): Turkish National Cyber Incident Response Center alerts.
 - 🔍 **Instant Filtering & CVE Search**: Filter streams with dedicated source chips or search for specific CVE numbers (e.g. `CVE-2026-`).
 - 🎨 **Obsidian-Native Minimalist Aesthetic**: Designed to blend seamlessly with your Obsidian theme, adhering strictly to native CSS variables and Lucide icons.
 
@@ -64,7 +93,7 @@ You can install **CyberSec Pulse** using any of the three methods below:
 
 ### 🌟 Method 1: Via BRAT (Recommended - Automatic Updates)
 
-The easiest and cleanest method using the **BRAT** (Beta Reviewer's Auto-update Tool) plugin:
+The easiest method using the [Obsidian42 - BRAT](https://github.com/TfTHacker/obsidian42-brat) plugin:
 
 1. In Obsidian, open **Settings** (`Ctrl+,` or `Cmd+,`).
 2. Go to **Community plugins** and ensure *Restricted mode* is turned **Off**.
@@ -82,24 +111,28 @@ The easiest and cleanest method using the **BRAT** (Beta Reviewer's Auto-update 
 
 ### 📂 Method 2: Manual Installation (GitHub Release)
 
-If you prefer not to use BRAT:
+If you prefer not to use BRAT, download the 3 plugin files directly:
 
-1. Head over to the [GitHub Releases](https://github.com/Nasuhii/cybersec-pulse/releases/latest) page.
-2. Download these **3 files** from the latest release:
-   - `main.js`
-   - `manifest.json`
-   - `styles.css`
-3. Locate your Obsidian Vault's plugins directory:
-   - **Quick way**: In Obsidian, go to **Settings → Community plugins** and click the small folder icon 📁 next to **Installed plugins**.
+| File | Direct Download Link | Description |
+|:---|:---:|:---|
+| **`main.js`** | [📥 **Download `main.js`**](https://github.com/Nasuhii/cybersec-pulse/releases/download/1.0.2/main.js) | Main plugin logic & threat engine |
+| **`manifest.json`** | [📥 **Download `manifest.json`**](https://github.com/Nasuhii/cybersec-pulse/releases/download/1.0.2/manifest.json) | Plugin identification & metadata |
+| **`styles.css`** | [📥 **Download `styles.css`**](https://github.com/Nasuhii/cybersec-pulse/releases/download/1.0.2/styles.css) | Minimalist styles for light/dark themes |
+
+> 🏷️ *View all version releases and notes:* [**Releases Page**](https://github.com/Nasuhii/cybersec-pulse/releases)
+
+#### Installation Steps:
+1. Locate your Obsidian Vault's plugins directory:
+   - **Quick way**: In Obsidian, go to **Settings → Community plugins** and click the folder icon 📁 next to **Installed plugins**.
    - **Manual paths**:
      - **Windows**: `C:\Users\<YourUser>\<VaultName>\.obsidian\plugins\`
      - **macOS**: `/Users/<YourUser>/<VaultName>/.obsidian/plugins/`
      - **Linux**: `/home/<user>/<VaultName>/.obsidian/plugins/`
-   > *Note: Folders starting with a dot (`.obsidian`) may be hidden by default in your file manager. Press `Ctrl+H` (Linux/Windows) or `Cmd+Shift+.` (macOS) to view hidden files.*
-4. Inside `plugins/`, create a new folder named `cybersec-pulse`.
-5. Move the downloaded `main.js`, `manifest.json`, and `styles.css` into `.obsidian/plugins/cybersec-pulse/`.
-6. Return to Obsidian → **Settings → Community plugins**, click the **Reload plugins** (🔄) button.
-7. Find **CyberSec Pulse** in the list and toggle the switch **ON**.
+   > *Note: Folders starting with a dot (`.obsidian`) may be hidden by default. Press `Ctrl+H` (Linux/Windows) or `Cmd+Shift+.` (macOS) to view hidden files.*
+2. Inside `plugins/`, create a new folder named `cybersec-pulse`.
+3. Move the downloaded `main.js`, `manifest.json`, and `styles.css` into `.obsidian/plugins/cybersec-pulse/`.
+4. In Obsidian → **Settings → Community plugins**, click the **Reload plugins** (🔄) button.
+5. Find **CyberSec Pulse** in the list and toggle the switch **ON**.
 
 ---
 
@@ -108,10 +141,10 @@ If you prefer not to use BRAT:
 If you have a terminal open in your vault directory:
 
 ```bash
-# Navigate to your vault plugins directory
+# 1. Navigate to your vault's plugins folder
 cd .obsidian/plugins
 
-# Clone the repository
+# 2. Clone the repository
 git clone https://github.com/Nasuhii/cybersec-pulse.git cybersec-pulse
 ```
 
@@ -150,7 +183,7 @@ Each clipped article is saved with rich markdown, metadata tags, and integrated 
 title: "Critical Zero-Day Under Active Exploitation"
 source: "The Hacker News"
 date: 2026-11-02
-link: https://thehackernews.com/...
+link: https://thehackernews.com/example-vulnerability-news
 cves:
   - CVE-2026-1044
 tags:
@@ -167,7 +200,7 @@ TARGET DECK: cybersec
 > - **Kaynak**: The Hacker News
 > - **Tarih**: 2026-11-02
 > - **İlgili CVE**: `CVE-2026-1044`
-> - **Orijinal Bağlantı**: [Haberi Kaynağında Aç](https://thehackernews.com/...)
+> - **Orijinal Bağlantı**: [Haberi Kaynağında Aç](https://thehackernews.com/example-vulnerability-news)
 
 ---
 
@@ -211,21 +244,28 @@ Navigate to **Settings → CyberSec Pulse**:
 
 ## 🇹🇷 Türkçe Kurulum Özeti
 
-1. **BRAT Eklentisi ile Kurulum (En Kolayı)**:
-   - Obsidian içinde *BRAT* eklentisini kurun ve etkinleştirin.
-   - BRAT ayarlarından **Add Beta plugin** butonuna tıklayın.
-   - `https://github.com/Nasuhii/cybersec-pulse` adresini yapıştırıp ekleyin.
-   - *Community plugins* sekmesinden **CyberSec Pulse**'ı aktif edin.
-2. **Manuel Kurulum (GitHub Releases)**:
-   - [Releases](https://github.com/Nasuhii/cybersec-pulse/releases/latest) sayfasından `main.js`, `manifest.json` ve `styles.css` dosyalarını indirin.
-   - Obsidian kasanızın içindeki `.obsidian/plugins/` klasörüne gidin (gizli klasördür, görünmüyorsa gizli dosyaları gösterin).
-   - Burada `cybersec-pulse` adında yeni bir klasör oluşturun ve bu 3 dosyayı içine yapıştırın.
-   - Obsidian'da *Community plugins* ekranında listeyi yenileyip eklentiyi açın.
-3. **Kullanım**: Sol paneldeki kalkan (`🛡️`) simgesine tıklayarak canlı siber güvenlik akışını başlatabilir, `Not Al` butonuyla tek tıkla kasanıza Anki kartlı not alabilirsiniz.
+### 1. BRAT ile Otomatik Kurulum (En Kolay)
+- Obsidian'da [BRAT Eklentisini](https://github.com/TfTHacker/obsidian42-brat) kurun ve aktif edin.
+- BRAT ayarlarından **Add Beta plugin** butonuna tıklayın.
+- Depo adresini yapıştırın:
+  ```text
+  https://github.com/Nasuhii/cybersec-pulse
+  ```
+- **Add Plugin** butonuna basın ve ardından *Community plugins* ekranından **CyberSec Pulse**'ı açın.
+
+### 2. Doğrudan Dosya İndirerek Manuel Kurulum
+Aşağıdaki 3 dosyayı doğrudan indirin:
+- 📥 [**`main.js` İndir**](https://github.com/Nasuhii/cybersec-pulse/releases/download/1.0.2/main.js)
+- 📥 [**`manifest.json` İndir**](https://github.com/Nasuhii/cybersec-pulse/releases/download/1.0.2/manifest.json)
+- 📥 [**`styles.css` İndir**](https://github.com/Nasuhii/cybersec-pulse/releases/download/1.0.2/styles.css)
+
+Dosyaları kasanız içerisindeki `.obsidian/plugins/cybersec-pulse/` klasörüne yapıştırıp Obsidian'da eklentiyi aktifleştirin.
 
 ---
 
-## 📄 License
+## 📄 License & Author
 
-This project is licensed under the [MIT License](LICENSE).  
-Created and maintained by [Nasuhii](https://github.com/Nasuhii).
+- **Lisans**: [MIT License](LICENSE)
+- **Geliştirici & Yazar**: [Nasuhii](https://github.com/Nasuhii)
+- **Hata Bildirimi & Destek**: [GitHub Issues](https://github.com/Nasuhii/cybersec-pulse/issues)
+- **GitHub Deposu**: [github.com/Nasuhii/cybersec-pulse](https://github.com/Nasuhii/cybersec-pulse)
