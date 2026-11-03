@@ -16,9 +16,11 @@ const DEFAULT_SETTINGS = {
   saveFolder: 'Areas/CyberSecurity/Haberler',
   rotationIntervalSec: 300,
   maxItemsPerFeed: 15,
+  defaultSortBy: 'rank',
   autoSaveEnabled: false,
   autoSaveLimit: 10,
   autoSaveOnlyCVE: false,
+  autoSaveMinRank: 8.5,
   fetchFullContent: true,
   enableCISA: true,
   enableBleeping: true,
@@ -72,6 +74,152 @@ const FEEDS = [
     url: 'https://www.usom.gov.tr/rss/tehdit.rss'
   }
 ];
+
+// Helper: Extract clean domain name for Hacker News style links
+function extractDomain(url) {
+  try {
+    if (!url) return '';
+    const parsed = new URL(url);
+    return parsed.hostname.replace(/^www\./, '');
+  } catch (e) {
+    return '';
+  }
+}
+
+// ==========================================================================
+// SİBER GÜVENLİK ÖĞRENCİSİ ÖNCELİK VE SIRALAMA SİSTEMİ (RANK: 1.0 - 10.0)
+// Bir siber güvenlik öğrencisinin kesinlikle okuması / labda incelemesi
+// gereken teknik zafiyet mekanizmalarına yüksek puan verirken; kurumsal PR,
+// şirket fonlamaları ve borsa haberlerini filtreler.
+// ==========================================================================
+function calculateStudentRank(article) {
+  const title = (article.title || '').toLowerCase();
+  const desc = (article.description || '').toLowerCase();
+  const text = `${title} ${desc}`;
+  const sourceId = (article.sourceId || '').toLowerCase();
+  const cves = article.cves || [];
+
+  let score = 5.0; // Temel başlangıç puanı
+  const reasons = [];
+  const tags = [];
+
+  // 1. Kaynak Güvenilirliği & Eğitim Önceliği
+  if (sourceId === 'cisa') {
+    score += 2.5; // CISA KEV: Doğada aktif istismar ediliyor (In-The-Wild)
+    reasons.push('CISA KEV: Doğada aktif sömürülen zafiyet (Pentest/SOC için zorunlu)');
+    tags.push('CISA KEV');
+  } else if (sourceId === 'portswigger') {
+    score += 2.4; // PortSwigger Research: Web güvenlik dünyasının altın standardı
+    reasons.push('PortSwigger: İleri Düzey Web Zafiyeti & Burp Pentest Araştırması');
+    tags.push('Web Pentest');
+  } else if (sourceId === 'netsec') {
+    score += 1.6; // r/netsec: Teknik analizler ve exploit PoC'leri
+    reasons.push('r/netsec: Derin Teknik Bildiri & PoC');
+    tags.push('NetSec');
+  } else if (sourceId === 'usom') {
+    score += 1.4; // USOM: Ulusal kritik altyapı tehdidi
+    reasons.push('USOM: Ulusal Tehdit & Kritik Bildirim');
+    tags.push('USOM');
+  } else if (sourceId === 'bleeping' || sourceId === 'thn') {
+    score += 0.5;
+  }
+
+  // 2. Resmi CVE Varlığı (Resmi Zafiyet)
+  if (cves.length > 0) {
+    score += 1.2;
+    tags.push(`${cves.length} CVE`);
+  }
+
+  // 3. Siber Güvenlik Öğrencisi Müfredatı & Uygulamalı Pentest Başlıkları (+2.0 ila +2.8 puan)
+  // RCE & Uzaktan Kod Yürütme (En Yüksek Öncelik)
+  if (/\b(rce|remote code execution|command injection|arbitrary code execution|code execution|uzaktan kod y[uü]r[uü]tme)\b/i.test(text)) {
+    score += 2.6;
+    reasons.push('Kritik RCE: Uzaktan Kod Yürütme Mekanizması');
+    tags.push('RCE');
+  }
+
+  // Temel Web Pentest Zafiyetleri (SQLi, XSS, SSRF, CSRF, IDOR, LFI/RFI, Deserialization, SSTI, Auth Bypass)
+  if (/\b(sql injection|sqli|cross-site scripting|xss|ssrf|server-side request forgery|csrf|idor|insecure direct object|path traversal|directory traversal|local file inclusion|lfi|rfi|ssti|template injection|deserialization|auth bypass|authentication bypass|broken access control|session hijacking)\b/i.test(text)) {
+    score += 2.3;
+    reasons.push('Temel Web & Zafiyet Mekanizması (Web Pentest Müfredatı)');
+    tags.push('Web Exploit');
+  }
+
+  // Bellek Bozulması, Düşük Seviye & Yetki Yükseltme (Buffer Overflow, PrivEsc, Zero-day)
+  if (/\b(zero-day|0-day|zero day|sıfır[- ]gün|buffer overflow|heap overflow|use-after-free|uaf|memory corruption|privilege escalation|privesc|yetki y[uü]kseltme|local privilege escalation|lpe|kernel exploit)\b/i.test(text)) {
+    score += 2.2;
+    reasons.push('Sıfır-Gün / Bellek Bozulması / Yetki Yükseltme');
+    tags.push('PrivEsc/0-Day');
+  }
+
+  // Çalışan Exploit / PoC / Silahlandırılmış Kod
+  if (/\b(poc|proof of concept|exploit released|weaponized|metasploit|nuclei|reverse shell|web shell|exploit script|github repository)\b/i.test(text)) {
+    score += 1.8;
+    reasons.push('Çalışan PoC / İstismar Kodu Yayında (Lab Analizine Uygun)');
+    tags.push('PoC Mevcut');
+  }
+
+  // Kurumsal Ağ, Active Directory & Protokol Analizi
+  if (/\b(active directory|kerberos|domain controller|smb|ntlm|golden ticket|silver ticket|pass-the-hash|bloodhound|ldap|lateral movement|pivoting|tunneling|c2|command and control|cobalt strike|ransomware|wireshark|packet)\b/i.test(text)) {
+    score += 1.6;
+    reasons.push('Kurumsal Ağ, AD & Protokol Analizi');
+    tags.push('AD/Network');
+  }
+
+  // 4. Öğrenci Dikkatini Dağıtan Düşük Öncelikli Haberler (-2.0 ila -3.5 puan)
+  // Şirket finansı, fonlama, şirket satın almaları, hisse senetleri (Teknik değeri olmayan PR bültenleri)
+  if (/\b(raises|funding|series [a-d]|valuation|\$\d+ million|\$\d+ billion|acquires|acquisition|merger|ipo|quarterly earnings|revenue grew|venture capital|stock plunged|stock surges|antitrust lawsuit|patent infringement|legal battle|ceo steps down|appointed ceo)\b/i.test(text)) {
+    score -= 3.5;
+    reasons.push('Kurumsal Finans / Şirket PR Haberi (Düşük Teknik Öncelik)');
+    tags.push('Sektörel PR');
+  }
+
+  // Regülasyon ve bürokrasi duyuruları (Teknik zafiyet veya exploit içermiyorsa)
+  if (/\b(white house|executive order|eu parliament|senate committee|gdpr fine|compliance audit|policy framework)\b/i.test(text) && !/\b(cve|vulnerability|exploit|rce)\b/i.test(text)) {
+    score -= 2.0;
+    reasons.push('Bürokratik / Regülasyon Duyurusu');
+  }
+
+  // 1.0 ile 10.0 arasında sınırla
+  score = Math.max(1.0, Math.min(10.0, score));
+  score = Math.round(score * 10) / 10;
+
+  let tier = 'medium';
+  let tierLabel = 'FAYDALI';
+  if (score >= 8.5) {
+    tier = 'must-read';
+    tierLabel = '🔥 MUST-READ (ZORUNLU)';
+  } else if (score >= 7.0) {
+    tier = 'high';
+    tierLabel = '⚡ YÜKSEK ÖNCELİK';
+  } else if (score < 5.0) {
+    tier = 'low';
+    tierLabel = '💤 DÜŞÜK ÖNCELİK';
+  }
+
+  const primaryReason = reasons.length > 0 ? reasons.slice(0, 2).join(' · ') : 'Genel Güvenlik Tehdidi';
+
+  return {
+    score,
+    tier,
+    tierLabel,
+    reason: primaryReason,
+    tags: tags.slice(0, 3)
+  };
+}
+
+// Helper: Öğrenci için tavsiye cümlesi
+function getStudentRecommendation(rank) {
+  if (rank.score >= 8.5) {
+    return 'Bu konu vahşi doğada aktif sömürülen veya temel exploit zincirine (RCE, Auth Bypass, CISA KEV) dayanan kritik bir gelişmedir. Bir siber güvenlik öğrencisinin teoriyi geçip lab ortamında (Burp Suite, Wireshark, Metasploit) zafiyet mekanizmasını kesinlikle incelemesi önerilir.';
+  } else if (rank.score >= 7.0) {
+    return 'Önemli teknik ayrıntılar ve pratik istismar/savunma mekanizmaları barındırmaktadır. SOC analizi veya web pentest çalışmalarınızda karşıt-önlem (mitigation) ve tespit (detection) yöntemlerini incelemeniz tavsiye edilir.';
+  } else if (rank.score >= 5.0) {
+    return 'Genel tehdit farkındalığı ve sektör takibi için okunabilir orta öncelikli bir gelişmedir.';
+  } else {
+    return 'Teknik istismar veya zafiyet analizi barındırmayan kurumsal/finansal bir haberdir. Teknik çalışma zamanınızı daha yüksek öncelikli (8.5+) zafiyet analizlerine ayırmanız önerilir.';
+  }
+}
 
 class CyberSecPulsePlugin extends Plugin {
   async onload() {
@@ -154,17 +302,21 @@ class CyberSecPulsePlugin extends Plugin {
               const data = res.json;
               if (data && data.vulnerabilities) {
                 const items = data.vulnerabilities.slice(-this.settings.maxItemsPerFeed).reverse();
-                articles.push(...items.map(v => ({
-                  id: v.cveID,
-                  title: `${v.cveID}: ${v.vulnerabilityName || v.shortDescription.substring(0, 70)}`,
-                  description: v.shortDescription + (v.requiredAction ? ` (Action: ${v.requiredAction})` : ''),
-                  link: `https://nvd.nist.gov/vuln/detail/${v.cveID}`,
-                  source: feed.name,
-                  sourceId: feed.id,
-                  sourceCode: feed.code,
-                  date: v.dateAdded,
-                  cves: [v.cveID]
-                })));
+                items.forEach(v => {
+                  const art = {
+                    id: v.cveID,
+                    title: `${v.cveID}: ${v.vulnerabilityName || v.shortDescription.substring(0, 70)}`,
+                    description: v.shortDescription + (v.requiredAction ? ` (Action: ${v.requiredAction})` : ''),
+                    link: `https://nvd.nist.gov/vuln/detail/${v.cveID}`,
+                    source: feed.name,
+                    sourceId: feed.id,
+                    sourceCode: feed.code,
+                    date: v.dateAdded,
+                    cves: [v.cveID]
+                  };
+                  art.studentRank = calculateStudentRank(art);
+                  articles.push(art);
+                });
               }
             } else if (feed.type === 'rss') {
               const res = await requestUrl({ url: feed.url });
@@ -183,7 +335,8 @@ class CyberSecPulsePlugin extends Plugin {
                 const cleanDesc = sanitizeSnippet(rawDesc, 180);
                 const pubDate = node.querySelector('pubDate, updated, dc\\:date')?.textContent?.trim() || new Date().toISOString();
                 const cveMatches = (title + ' ' + rawDesc).match(/CVE-\d{4}-\d{4,7}/gi) || [];
-                articles.push({
+                const uniqueCVEs = [...new Set(cveMatches.map(c => c.toUpperCase()))];
+                const art = {
                   id: link || title,
                   title,
                   description: cleanDesc,
@@ -192,19 +345,25 @@ class CyberSecPulsePlugin extends Plugin {
                   sourceId: feed.id,
                   sourceCode: feed.code,
                   date: pubDate,
-                  cves: [...new Set(cveMatches.map(c => c.toUpperCase()))]
-                });
+                  cves: uniqueCVEs
+                };
+                art.studentRank = calculateStudentRank(art);
+                articles.push(art);
               }
             }
           } catch (e) {
             console.warn(`[CyberSec Pulse] ${feed.name} background fetch failed:`, e);
           }
         }
-        articles.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+        // Sort by Student Rank descending
+        articles.sort((a, b) => (b.studentRank?.score || 0) - (a.studentRank?.score || 0));
+
         const limit = this.settings.autoSaveLimit || 10;
         let savedCount = 0;
         for (const article of articles.slice(0, limit)) {
           if (this.settings.autoSaveOnlyCVE && (!article.cves || article.cves.length === 0)) continue;
+          if (this.settings.autoSaveMinRank && article.studentRank?.score < this.settings.autoSaveMinRank) continue;
           const saved = await saveArticleAsNote(this.app, this, article, true);
           if (saved) savedCount++;
         }
@@ -269,6 +428,7 @@ class CyberSecPulseView extends ItemView {
     this.articles = [];
     this.filteredArticles = [];
     this.activeFilter = 'all';
+    this.sortBy = this.plugin.settings.defaultSortBy || 'rank'; // 'rank' or 'date'
     this.searchQuery = '';
     this.isLoading = false;
 
@@ -308,12 +468,15 @@ class CyberSecPulseView extends ItemView {
     container.empty();
     container.addClass('cybersec-pulse-container');
 
-    // 1. Minimal Header
+    // 1. Hacker News Style Header Bar
     const header = container.createEl('div', { cls: 'cybersec-pulse-header' });
     const topBar = header.createEl('div', { cls: 'cybersec-pulse-topbar' });
 
-    // Brand & Status
+    // Brand & Status (Classic [CP] Logo + Title + Status)
     const brand = topBar.createEl('div', { cls: 'cybersec-pulse-brand' });
+    const logoBox = brand.createEl('span', { cls: 'cybersec-hn-logo', text: 'CP' });
+    logoBox.title = 'CyberSec Pulse: Threat Radar & Student Priority Engine';
+
     brand.createEl('span', { cls: 'cybersec-pulse-title', text: 'CYBERSEC PULSE' });
 
     this.statusEl = brand.createEl('div', { cls: 'cybersec-pulse-status' });
@@ -323,26 +486,64 @@ class CyberSecPulseView extends ItemView {
     // Header Controls
     const controls = topBar.createEl('div', { cls: 'cybersec-pulse-controls' });
 
+    // Sort Toggle Button (Rank vs Date)
+    this.sortBtn = controls.createEl('button', {
+      cls: 'cybersec-hn-btn cybersec-sort-btn',
+      attr: { 'aria-label': 'Sıralama: Öğrenci Puanı veya Tarih' },
+      text: this.sortBy === 'rank' ? '▲ RANK' : '🕒 DATE'
+    });
+    this.sortBtn.onclick = () => this.toggleSort();
+
     // Auto-advance toggle button
     this.pauseBtn = controls.createEl('button', {
-      cls: 'cybersec-icon-btn',
-      attr: { 'aria-label': 'Pause / Play Rotation' }
+      cls: 'cybersec-hn-btn cybersec-icon-btn',
+      attr: { 'aria-label': 'Dönüşü Duraklat / Başlat' }
     });
     setIcon(this.pauseBtn, 'pause');
     this.pauseBtn.onclick = () => this.togglePause();
 
     // Refresh button
     const refreshBtn = controls.createEl('button', {
-      cls: 'cybersec-icon-btn',
-      attr: { 'aria-label': 'Refresh Intelligence Feeds' }
+      cls: 'cybersec-hn-btn cybersec-icon-btn',
+      attr: { 'aria-label': 'Akışı Yenile' }
     });
     setIcon(refreshBtn, 'refresh-cw');
     refreshBtn.onclick = () => this.fetchAllFeeds();
 
-    // 2. Rotator Stage Container (Sırayla Dönen Haberler)
+    // Subnav Filter Links (Hacker News inline bar: all | must-read | cisa | ...)
+    const subnav = header.createEl('div', { cls: 'cybersec-hn-subnav' });
+    const filters = [
+      { id: 'all', label: 'all' },
+      { id: 'must-read', label: '🔥 must-read (8.5+)' },
+      { id: 'cisa', label: 'cisa' },
+      { id: 'portswigger', label: 'portswigger' },
+      { id: 'bleeping', label: 'bleeping' },
+      { id: 'thn', label: 'thn' },
+      { id: 'netsec', label: 'r/netsec' },
+      { id: 'usom', label: 'usom' }
+    ];
+
+    this.chipButtons = {};
+    filters.forEach((f, idx) => {
+      if (idx > 0) {
+        subnav.createEl('span', { cls: 'cybersec-hn-pipe', text: '|' });
+      }
+      const item = subnav.createEl('span', {
+        cls: `cybersec-hn-navlink ${this.activeFilter === f.id ? 'is-active' : ''}`,
+        text: f.label
+      });
+      item.onclick = () => {
+        Object.values(this.chipButtons).forEach(b => b.removeClass('is-active'));
+        item.addClass('is-active');
+        this.activeFilter = f.id;
+        this.filterAndRender();
+      };
+      this.chipButtons[f.id] = item;
+    });
+
+    // 2. Rotator Stage Container (Sırayla Dönen Haber Kartı)
     this.rotatorWrapper = container.createEl('div', { cls: 'cybersec-rotator-wrapper' });
 
-    // Hover listeners to gracefully pause rotation while reading/clicking
     this.rotatorWrapper.addEventListener('mouseenter', () => {
       this.isHovered = true;
       this.updateStatusBadge();
@@ -352,19 +553,19 @@ class CyberSecPulseView extends ItemView {
       this.updateStatusBadge();
     });
 
-    // Linear progress bar at top of card
+    // Linear progress bar at top of card (2px HN Orange)
     this.progressTrack = this.rotatorWrapper.createEl('div', { cls: 'cybersec-progress-track' });
     this.progressBar = this.progressTrack.createEl('div', { cls: 'cybersec-progress-bar' });
 
     // Card inner content
     this.rotatorCard = this.rotatorWrapper.createEl('div', { cls: 'cybersec-rotator-card' });
 
-    // 3. Search & Filter Area
+    // 3. Search Bar
     const filterArea = container.createEl('div', { cls: 'cybersec-filter-area' });
 
     this.searchInput = filterArea.createEl('input', {
       type: 'search',
-      placeholder: 'filter feed or cve...',
+      placeholder: 'filtrele: cve, rce, xss, sqli, başlık...',
       cls: 'cybersec-search-input'
     });
 
@@ -373,40 +574,24 @@ class CyberSecPulseView extends ItemView {
       this.filterAndRender();
     });
 
-    // Clean source filter chips
-    const chipsContainer = filterArea.createEl('div', { cls: 'cybersec-filter-chips' });
-    const filters = [
-      { id: 'all', label: 'all' },
-      { id: 'cisa', label: 'cisa' },
-      { id: 'bleeping', label: 'bleeping' },
-      { id: 'thn', label: 'thn' },
-      { id: 'portswigger', label: 'portswigger' },
-      { id: 'netsec', label: 'r/netsec' },
-      { id: 'usom', label: 'usom' }
-    ];
-
-    this.chipButtons = {};
-    filters.forEach(f => {
-      const chip = chipsContainer.createEl('button', {
-        cls: `cybersec-filter-chip ${this.activeFilter === f.id ? 'is-active' : ''}`,
-        text: f.label
-      });
-      chip.onclick = () => {
-        Object.values(this.chipButtons).forEach(b => b.removeClass('is-active'));
-        chip.addClass('is-active');
-        this.activeFilter = f.id;
-        this.filterAndRender();
-      };
-      this.chipButtons[f.id] = chip;
-    });
-
-    // 4. Compact Stream / Wire Feed Header
+    // 4. Stream / Wire Feed Header
     const wireHeader = container.createEl('div', { cls: 'cybersec-wire-header' });
-    this.wireTitleEl = wireHeader.createEl('span', { text: 'WIRE FEED' });
-    this.wireCountEl = wireHeader.createEl('span', { text: '0 ITEMS' });
+    this.wireTitleEl = wireHeader.createEl('span', { text: `TOP THREATS (${this.sortBy.toUpperCase()})` });
+    this.wireCountEl = wireHeader.createEl('span', { text: '0 STORIES' });
 
     // Stream list container
     this.wireList = container.createEl('div', { cls: 'cybersec-wire-list' });
+  }
+
+  toggleSort() {
+    this.sortBy = this.sortBy === 'rank' ? 'date' : 'rank';
+    if (this.sortBtn) {
+      this.sortBtn.setText(this.sortBy === 'rank' ? '▲ RANK' : '🕒 DATE');
+    }
+    if (this.wireTitleEl) {
+      this.wireTitleEl.setText(`TOP THREATS (${this.sortBy.toUpperCase()})`);
+    }
+    this.filterAndRender();
   }
 
   // --- Rotator Engine ---
@@ -505,24 +690,31 @@ class CyberSecPulseView extends ItemView {
     const article = this.filteredArticles[this.currentIndex];
     if (!article) return;
 
-    // Trigger subtle fade-in
-    this.rotatorCard.removeClass('fade-in');
-    void this.rotatorCard.offsetWidth; // reflow
-    this.rotatorCard.addClass('fade-in');
+    const rank = article.studentRank || calculateStudentRank(article);
+    const domain = extractDomain(article.link);
 
-    // 1. Meta Line (Source + Time + Controls)
+    // 1. Meta Line (Hacker News Score & Metadata)
     const meta = this.rotatorCard.createEl('div', { cls: 'cybersec-rotator-meta' });
 
     const metaLeft = meta.createEl('div', { cls: 'cybersec-rotator-meta-left' });
+
+    // Upvote arrow + Score
+    const scoreBadge = metaLeft.createEl('span', {
+      cls: `cybersec-hn-score-pill ${rank.tier}`,
+      text: `▲ ${rank.score}/10`
+    });
+    scoreBadge.title = `Öğrenci Okuma Önceliği: ${rank.score}/10`;
+
     metaLeft.createEl('span', {
-      cls: `cybersec-source-tag ${article.sourceCode}`,
-      text: article.sourceCode
+      cls: `cybersec-hn-tier-tag ${rank.tier}`,
+      text: rank.tierLabel
     });
 
     const timeStr = formatRelativeTime(article.date);
-    if (timeStr) {
-      metaLeft.createEl('span', { cls: 'cybersec-timestamp', text: `· ${timeStr}` });
-    }
+    metaLeft.createEl('span', {
+      cls: 'cybersec-timestamp',
+      text: `by ${article.source}${domain ? ` (${domain})` : ''}${timeStr ? ` · ${timeStr}` : ''}`
+    });
 
     // Rotator Nav (Counter + Prev / Next buttons)
     const nav = meta.createEl('div', { cls: 'cybersec-rotator-nav' });
@@ -531,7 +723,7 @@ class CyberSecPulseView extends ItemView {
 
     const prevBtn = nav.createEl('button', {
       cls: 'cybersec-rotator-btn',
-      attr: { 'aria-label': 'Previous Article' }
+      attr: { 'aria-label': 'Önceki Haber' }
     });
     setIcon(prevBtn, 'chevron-left');
     prevBtn.onclick = (e) => {
@@ -541,7 +733,7 @@ class CyberSecPulseView extends ItemView {
 
     const nextBtn = nav.createEl('button', {
       cls: 'cybersec-rotator-btn',
-      attr: { 'aria-label': 'Next Article' }
+      attr: { 'aria-label': 'Sonraki Haber' }
     });
     setIcon(nextBtn, 'chevron-right');
     nextBtn.onclick = (e) => {
@@ -549,7 +741,7 @@ class CyberSecPulseView extends ItemView {
       this.nextArticle();
     };
 
-    // 2. Title
+    // 2. Title (Clickable)
     const titleEl = this.rotatorCard.createEl('h4', {
       cls: 'cybersec-rotator-title',
       text: article.title
@@ -558,7 +750,12 @@ class CyberSecPulseView extends ItemView {
       new ArticleReaderModal(this.app, this.plugin, article).open();
     };
 
-    // 3. Excerpt
+    // 3. Student Assessment Guidance Callout (Hacker News Orange Callout)
+    const guidanceBox = this.rotatorCard.createEl('div', { cls: 'cybersec-student-guidance' });
+    const guidanceTitle = guidanceBox.createEl('div', { cls: 'cybersec-guidance-head' });
+    guidanceTitle.createEl('span', { text: `🎓 Öğrenci Analizi: ${rank.reason}` });
+
+    // 4. Excerpt / Description
     if (article.description) {
       this.rotatorCard.createEl('p', {
         cls: 'cybersec-rotator-desc',
@@ -566,7 +763,7 @@ class CyberSecPulseView extends ItemView {
       });
     }
 
-    // 4. Footer (CVE Tags & Actions)
+    // 5. Footer (CVE Tags & Actions)
     const footer = this.rotatorCard.createEl('div', { cls: 'cybersec-rotator-footer' });
 
     const cveGroup = footer.createEl('div', { cls: 'cybersec-cve-group' });
@@ -577,9 +774,8 @@ class CyberSecPulseView extends ItemView {
     const actions = footer.createEl('div', { cls: 'cybersec-action-links' });
 
     // Read action
-    const readBtn = actions.createEl('button', { cls: 'cybersec-text-btn' });
-    setIcon(readBtn, 'book-open');
-    readBtn.createSpan({ text: 'read' });
+    const readBtn = actions.createEl('button', { cls: 'cybersec-hn-action-btn' });
+    readBtn.createSpan({ text: 'oku' });
     readBtn.onclick = () => {
       new ArticleReaderModal(this.app, this.plugin, article).open();
     };
@@ -587,10 +783,9 @@ class CyberSecPulseView extends ItemView {
     // Save action
     const isSaved = isArticleSaved(this.app, this.plugin, article);
     const saveBtn = actions.createEl('button', {
-      cls: `cybersec-text-btn save-action ${isSaved ? 'is-saved' : ''}`
+      cls: `cybersec-hn-action-btn ${isSaved ? 'is-saved' : ''}`
     });
-    setIcon(saveBtn, isSaved ? 'check' : 'bookmark');
-    const saveText = saveBtn.createSpan({ text: isSaved ? 'Kaydedildi' : 'Not Al' });
+    const saveText = saveBtn.createSpan({ text: isSaved ? 'kaydedildi ✓' : 'not al' });
     saveBtn.onclick = async (e) => {
       e.stopPropagation();
       if (saveBtn.hasClass('is-saved')) {
@@ -603,33 +798,30 @@ class CyberSecPulseView extends ItemView {
         }
         return;
       }
-      saveText.setText('Kaydediliyor...');
-      setIcon(saveBtn, 'loader');
+      saveText.setText('kaydediliyor...');
       const res = await saveArticleAsNote(this.app, this.plugin, article);
       if (res && res.success) {
         saveBtn.addClass('is-saved');
-        saveText.setText('Kaydedildi');
-        setIcon(saveBtn, 'check');
+        saveText.setText('kaydedildi ✓');
         this.renderWireList();
       } else {
-        saveText.setText('Not Al');
-        setIcon(saveBtn, 'bookmark');
+        saveText.setText('not al');
       }
     };
 
     // External link action
     const extBtn = actions.createEl('button', {
-      cls: 'cybersec-text-btn',
-      attr: { 'aria-label': 'Open in Browser' }
+      cls: 'cybersec-hn-action-btn',
+      attr: { 'aria-label': 'Tarayıcıda Aç' }
     });
-    setIcon(extBtn, 'external-link');
+    extBtn.createSpan({ text: 'kaynak ↗' });
     extBtn.onclick = () => window.open(article.link, '_blank');
   }
 
   renderWireList() {
     this.wireList.empty();
 
-    this.wireCountEl.setText(`${this.filteredArticles.length} ITEMS`);
+    this.wireCountEl.setText(`${this.filteredArticles.length} STORIES`);
 
     if (this.filteredArticles.length === 0) {
       const emptyEl = this.wireList.createEl('div', { cls: 'cybersec-wire-empty' });
@@ -641,38 +833,58 @@ class CyberSecPulseView extends ItemView {
 
     this.filteredArticles.forEach((article, index) => {
       const isSaved = isArticleSaved(this.app, this.plugin, article);
+      const rank = article.studentRank || calculateStudentRank(article);
+      const domain = extractDomain(article.link);
+
       const row = this.wireList.createEl('div', {
         cls: `cybersec-wire-row ${index === this.currentIndex ? 'is-active' : ''}`
       });
 
-      row.createEl('div', { cls: 'cybersec-wire-row-indicator' });
+      // Item rank number (1., 2., 3. ...)
+      row.createEl('span', { cls: 'cybersec-hn-rank-num', text: `${index + 1}.` });
+
+      // Upvote arrow + Score
+      const voteBox = row.createEl('div', { cls: 'cybersec-hn-vote-box' });
+      voteBox.createEl('span', { cls: 'cybersec-hn-upvote', text: '▲' });
+      voteBox.createEl('span', { cls: `cybersec-hn-score ${rank.tier}`, text: `${rank.score}` });
 
       const body = row.createEl('div', { cls: 'cybersec-wire-body' });
 
-      const top = body.createEl('div', { cls: 'cybersec-wire-top' });
-      top.createEl('span', {
-        cls: `cybersec-source-tag ${article.sourceCode}`,
-        text: article.sourceCode
-      });
+      // Top headline row: Title (domain)
+      const headline = body.createEl('div', { cls: 'cybersec-wire-headline' });
+      headline.createEl('span', { cls: 'cybersec-wire-title', text: article.title });
+      if (domain) {
+        headline.createEl('span', { cls: 'cybersec-hn-domain', text: `(${domain})` });
+      }
+
+      // Subtext line: X pts by source · time | tier | reason | cve
+      const subtext = body.createEl('div', { cls: 'cybersec-hn-subtext' });
 
       const timeStr = formatRelativeTime(article.date);
-      if (timeStr) {
-        top.createEl('span', { cls: 'cybersec-timestamp', text: timeStr });
+      subtext.createEl('span', {
+        text: `${rank.score} pts by ${article.sourceCode}${timeStr ? ` · ${timeStr}` : ''}`
+      });
+
+      subtext.createEl('span', { cls: 'cybersec-hn-pipe', text: '|' });
+      subtext.createEl('span', { cls: `cybersec-hn-subtier ${rank.tier}`, text: rank.tierLabel });
+
+      if (rank.reason) {
+        subtext.createEl('span', { cls: 'cybersec-hn-pipe', text: '|' });
+        subtext.createEl('span', { cls: 'cybersec-hn-reason', text: rank.reason });
       }
 
       if (article.cves.length > 0) {
-        top.createEl('span', { cls: 'cybersec-cve-chip', text: article.cves[0] });
+        subtext.createEl('span', { cls: 'cybersec-hn-pipe', text: '|' });
+        subtext.createEl('span', { cls: 'cybersec-cve-chip', text: article.cves[0] });
       }
-
-      body.createEl('p', { cls: 'cybersec-wire-title', text: article.title });
 
       // Quick 1-click Bookmark / Save Button
       const wireAction = row.createEl('div', { cls: 'cybersec-wire-action' });
       const wireSaveBtn = wireAction.createEl('button', {
-        cls: `cybersec-icon-btn wire-save-btn ${isSaved ? 'is-saved' : ''}`,
-        attr: { 'aria-label': isSaved ? 'Vault\'ta Kayıtlı (Tıkla ve Notu Aç)' : 'Bu Haberi Not Olarak Kaydet' }
+        cls: `cybersec-hn-mini-btn ${isSaved ? 'is-saved' : ''}`,
+        attr: { 'aria-label': isSaved ? 'Kayıtlı (Aç)' : 'Not Al' },
+        text: isSaved ? '✓' : '+'
       });
-      setIcon(wireSaveBtn, isSaved ? 'check' : 'bookmark');
 
       wireSaveBtn.onclick = async (e) => {
         e.stopPropagation();
@@ -687,17 +899,16 @@ class CyberSecPulseView extends ItemView {
           return;
         }
 
-        setIcon(wireSaveBtn, 'loader');
+        wireSaveBtn.setText('..');
         const res = await saveArticleAsNote(this.app, this.plugin, article);
         if (res && res.success) {
           wireSaveBtn.addClass('is-saved');
-          setIcon(wireSaveBtn, 'check');
-          wireSaveBtn.setAttribute('aria-label', 'Vault\'ta Kayıtlı (Tıkla ve Notu Aç)');
+          wireSaveBtn.setText('✓');
           if (index === this.currentIndex) {
             this.renderCurrentArticle();
           }
         } else {
-          setIcon(wireSaveBtn, 'bookmark');
+          wireSaveBtn.setText('+');
         }
       };
 
@@ -718,7 +929,6 @@ class CyberSecPulseView extends ItemView {
     this.wireRowEls.forEach((row, idx) => {
       if (idx === this.currentIndex) {
         row.addClass('is-active');
-        // Gentle auto-scroll to keep active wire item visible
         row.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
       } else {
         row.removeClass('is-active');
@@ -727,18 +937,34 @@ class CyberSecPulseView extends ItemView {
   }
 
   filterAndRender() {
-    let filtered = this.articles;
+    let filtered = [...this.articles];
 
-    if (this.activeFilter !== 'all') {
+    // Filter by source or tier
+    if (this.activeFilter === 'must-read') {
+      filtered = filtered.filter(a => a.studentRank && a.studentRank.score >= 8.5);
+    } else if (this.activeFilter !== 'all') {
       filtered = filtered.filter(a => a.sourceId === this.activeFilter);
     }
 
+    // Filter by search query
     if (this.searchQuery) {
       filtered = filtered.filter(a =>
         a.title.toLowerCase().includes(this.searchQuery) ||
         a.description.toLowerCase().includes(this.searchQuery) ||
+        (a.studentRank && a.studentRank.reason.toLowerCase().includes(this.searchQuery)) ||
         a.cves.some(c => c.toLowerCase().includes(this.searchQuery))
       );
+    }
+
+    // Sort
+    if (this.sortBy === 'rank') {
+      filtered.sort((a, b) => {
+        const scoreDiff = (b.studentRank?.score || 0) - (a.studentRank?.score || 0);
+        if (scoreDiff !== 0) return scoreDiff;
+        return new Date(b.date).getTime() - new Date(a.date).getTime();
+      });
+    } else {
+      filtered.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
     }
 
     this.filteredArticles = filtered;
@@ -774,8 +1000,6 @@ class CyberSecPulseView extends ItemView {
       }
     }
 
-    // Sort by Date descending
-    allArticles.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
     this.articles = allArticles;
     this.isLoading = false;
     this.updateStatusBadge();
@@ -803,6 +1027,9 @@ class CyberSecPulseView extends ItemView {
     const targetList = articlesToSave.slice(0, limit);
     for (const article of targetList) {
       if (isAuto && this.plugin.settings.autoSaveOnlyCVE && (!article.cves || article.cves.length === 0)) {
+        continue;
+      }
+      if (isAuto && this.plugin.settings.autoSaveMinRank && article.studentRank?.score < this.plugin.settings.autoSaveMinRank) {
         continue;
       }
       const saved = await saveArticleAsNote(this.app, this.plugin, article, true);
@@ -833,17 +1060,21 @@ class CyberSecPulseView extends ItemView {
     if (!data || !data.vulnerabilities) return [];
 
     const items = data.vulnerabilities.slice(-this.plugin.settings.maxItemsPerFeed).reverse();
-    return items.map(v => ({
-      id: v.cveID,
-      title: `${v.cveID}: ${v.vulnerabilityName || v.shortDescription.substring(0, 70)}`,
-      description: v.shortDescription + (v.requiredAction ? ` (Action: ${v.requiredAction})` : ''),
-      link: `https://nvd.nist.gov/vuln/detail/${v.cveID}`,
-      source: feed.name,
-      sourceId: feed.id,
-      sourceCode: feed.code,
-      date: v.dateAdded,
-      cves: [v.cveID]
-    }));
+    return items.map(v => {
+      const art = {
+        id: v.cveID,
+        title: `${v.cveID}: ${v.vulnerabilityName || v.shortDescription.substring(0, 70)}`,
+        description: v.shortDescription + (v.requiredAction ? ` (Action: ${v.requiredAction})` : ''),
+        link: `https://nvd.nist.gov/vuln/detail/${v.cveID}`,
+        source: feed.name,
+        sourceId: feed.id,
+        sourceCode: feed.code,
+        date: v.dateAdded,
+        cves: [v.cveID]
+      };
+      art.studentRank = calculateStudentRank(art);
+      return art;
+    });
   }
 
   async fetchRSS(feed) {
@@ -873,7 +1104,7 @@ class CyberSecPulseView extends ItemView {
       const cveMatches = (title + ' ' + rawDesc).match(/CVE-\d{4}-\d{4,7}/gi) || [];
       const uniqueCVEs = [...new Set(cveMatches.map(c => c.toUpperCase()))];
 
-      items.push({
+      const art = {
         id: link || title,
         title,
         description: cleanDesc,
@@ -883,7 +1114,9 @@ class CyberSecPulseView extends ItemView {
         sourceCode: feed.code,
         date: pubDate,
         cves: uniqueCVEs
-      });
+      };
+      art.studentRank = calculateStudentRank(art);
+      items.push(art);
     }
 
     return items;
@@ -903,7 +1136,7 @@ function isArticleSaved(app, plugin, article) {
   return app.vault.getAbstractFileByPath(filePath) !== null;
 }
 
-// In-App Article Reader Modal
+// In-App Article Reader Modal (Hacker News Clean Paper Style)
 class ArticleReaderModal extends Modal {
   constructor(app, plugin, article) {
     super(app);
@@ -917,11 +1150,26 @@ class ArticleReaderModal extends Modal {
     contentEl.empty();
     contentEl.addClass('cybersec-reader-modal');
 
+    const rank = this.article.studentRank || calculateStudentRank(this.article);
+    const domain = extractDomain(this.article.link);
+
     // Meta bar
     const metaBar = contentEl.createEl('div', { cls: 'cybersec-reader-meta-bar' });
     const left = metaBar.createEl('div', { style: 'display: flex; align-items: center; gap: 8px;' });
-    left.createEl('span', { cls: `cybersec-source-tag ${this.article.sourceCode}`, text: this.article.sourceCode });
-    left.createEl('span', { text: formatRelativeTime(this.article.date) || '' });
+
+    left.createEl('span', {
+      cls: `cybersec-hn-score-pill ${rank.tier}`,
+      text: `▲ ${rank.score}/10`
+    });
+
+    left.createEl('span', {
+      cls: `cybersec-hn-tier-tag ${rank.tier}`,
+      text: rank.tierLabel
+    });
+
+    left.createEl('span', {
+      text: `by ${this.article.source}${domain ? ` (${domain})` : ''} · ${formatRelativeTime(this.article.date) || ''}`
+    });
 
     if (this.article.cves.length > 0) {
       const cveWrap = metaBar.createEl('div', { style: 'display: flex; gap: 4px;' });
@@ -933,22 +1181,25 @@ class ArticleReaderModal extends Modal {
     // Title
     contentEl.createEl('h2', { cls: 'cybersec-reader-title', text: this.article.title });
 
+    // Student Guidance Box in Reader
+    const guidanceBox = contentEl.createEl('div', { cls: 'cybersec-student-guidance' });
+    guidanceBox.createEl('div', { cls: 'cybersec-guidance-head', text: `🎓 Siber Güvenlik Öğrenci Değerlendirmesi (${rank.score}/10)` });
+    guidanceBox.createEl('div', { cls: 'cybersec-guidance-body', text: `${rank.reason} — ${getStudentRecommendation(rank)}` });
+
     // Actions
     const actions = contentEl.createEl('div', { cls: 'cybersec-reader-actions' });
 
     const isSaved = isArticleSaved(this.app, this.plugin, this.article);
 
     const saveBtn = actions.createEl('button', {
-      cls: `cybersec-reader-btn-save ${isSaved ? 'is-saved' : ''}`
+      cls: `cybersec-hn-reader-btn ${isSaved ? 'is-saved' : ''}`
     });
-    setIcon(saveBtn, isSaved ? 'check' : 'bookmark');
-    const saveBtnText = saveBtn.createSpan({ text: isSaved ? 'Vault\'ta Kayıtlı' : 'Bu Haberi Not Al' });
+    const saveBtnText = saveBtn.createSpan({ text: isSaved ? 'Vault\'ta Kayıtlı ✓' : 'Bu Haberi Not Al' });
 
     let openBtn = null;
     const addOpenBtn = (file) => {
       if (openBtn) return;
-      openBtn = actions.createEl('button', { cls: 'cybersec-reader-btn-open' });
-      setIcon(openBtn, 'file-text');
+      openBtn = actions.createEl('button', { cls: 'cybersec-hn-reader-btn-secondary' });
       openBtn.createSpan({ text: 'Notu Aç (Editörde)' });
       openBtn.onclick = () => {
         if (file) {
@@ -978,14 +1229,11 @@ class ArticleReaderModal extends Modal {
       }
 
       saveBtnText.setText('Kaydediliyor...');
-      setIcon(saveBtn, 'loader');
       const res = await saveArticleAsNote(this.app, this.plugin, this.article, false, this.extractedArticleText || '');
       if (res && res.success) {
         saveBtn.addClass('is-saved');
         saveBtnText.setText('Kaydedildi ✓');
-        setIcon(saveBtn, 'check');
         if (res.file) addOpenBtn(res.file);
-        // Refresh open views
         const leaves = this.app.workspace.getLeavesOfType(VIEW_TYPE_CYBERSEC);
         for (const leaf of leaves) {
           if (leaf.view && typeof leaf.view.renderCurrentArticle === 'function') {
@@ -995,18 +1243,16 @@ class ArticleReaderModal extends Modal {
         }
       } else {
         saveBtnText.setText('Bu Haberi Not Al');
-        setIcon(saveBtn, 'bookmark');
       }
     };
 
-    const extBtn = actions.createEl('button', { cls: 'cybersec-text-btn' });
-    setIcon(extBtn, 'external-link');
-    extBtn.createSpan({ text: 'Original Source' });
+    const extBtn = actions.createEl('button', { cls: 'cybersec-hn-reader-btn-secondary' });
+    extBtn.createSpan({ text: 'Orijinal Kaynak ↗' });
     extBtn.onclick = () => window.open(this.article.link, '_blank');
 
     // Reader body
     const bodyEl = contentEl.createEl('div', { cls: 'cybersec-reader-content' });
-    bodyEl.innerHTML = `<i>loading article content...</i>`;
+    bodyEl.innerHTML = `<i>makale içeriği yükleniyor...</i>`;
 
     try {
       const res = await requestUrl({ url: this.article.link });
@@ -1035,15 +1281,15 @@ class ArticleReaderModal extends Modal {
           this.extractedArticleText = extracted.join('\n\n');
         }
       } else {
-        bodyEl.innerHTML = `<p>${this.article.description || 'no detailed text available.'}</p>`;
+        bodyEl.innerHTML = `<p>${this.article.description || 'detaylı metin bulunamadı.'}</p>`;
       }
     } catch (err) {
       bodyEl.empty();
       bodyEl.innerHTML = `
-        <p><b>Direct view blocked by host (CORS / Cloudflare):</b></p>
-        <p><a href="${this.article.link}" target="_blank">Open directly in browser ↗</a></p>
+        <p><b>Host tarafından doğrudan okuma engellendi (CORS / Cloudflare):</b></p>
+        <p><a href="${this.article.link}" target="_blank">Orijinal tarayıcı sekmesinde aç ↗</a></p>
         <hr style="margin: 14px 0; border: none; border-top: 1px solid var(--background-modifier-border);">
-        <p><b>Summary:</b></p>
+        <p><b>Özet:</b></p>
         <p>${this.article.description}</p>
       `;
     }
@@ -1055,7 +1301,7 @@ class ArticleReaderModal extends Modal {
   }
 }
 
-// Save Article as Markdown Note
+// Save Article as Markdown Note with Student Rank & Analysis
 async function saveArticleAsNote(app, plugin, article, silent = false, cachedText = '') {
   try {
     const dateStr = new Date().toISOString().split('T')[0];
@@ -1112,15 +1358,23 @@ async function saveArticleAsNote(app, plugin, article, silent = false, cachedTex
       }
     }
 
+    const rank = article.studentRank || calculateStudentRank(article);
+    const domain = extractDomain(article.link);
+
     const frontmatter = [
       '---',
       `title: "${article.title.replace(/"/g, '\\"')}"`,
       `date_saved: ${dateStr}`,
       `source: "${article.source}"`,
+      `domain: "${domain}"`,
       `url: "${article.link}"`,
+      `student_rank: ${rank.score}`,
+      `student_tier: "${rank.tier}"`,
+      `student_reason: "${rank.reason.replace(/"/g, '\\"')}"`,
       `cves: [${article.cves.map(c => `"${c}"`).join(', ')}]`,
       `tags:`,
       `  - cybersec/intel`,
+      `  - student_rank/${rank.score >= 8.5 ? 'must_read' : rank.score >= 7.0 ? 'high_priority' : 'general'}`,
       `  - source/${article.sourceId}`,
       ...article.cves.map(c => `  - vulnerability/${c}`),
       '---'
@@ -1135,8 +1389,12 @@ async function saveArticleAsNote(app, plugin, article, silent = false, cachedTex
       '',
       `# 🛡️ ${article.title}`,
       '',
-      `> [!INFO] 📌 Tehdit İstihbarat Özeti`,
-      `> - **Kaynak / Portal:** [${article.source}](${article.link})`,
+      `> [!IMPORTANT] 🎓 Siber Güvenlik Öğrenci Öncelik Puanı: **${rank.score} / 10** (${rank.tierLabel})`,
+      `> - **Öncelik Sebebi:** ${rank.reason}`,
+      `> - **Öğrenci Tavsiyesi:** ${getStudentRecommendation(rank)}`,
+      '',
+      `> [!INFO] 📌 Tehdit İstihbarat Detayları`,
+      `> - **Kaynak / Portal:** [${article.source}${domain ? ` (${domain})` : ''}](${article.link})`,
       `> - **Tarih:** ${dateStr}`,
       article.cves.length > 0 ? `> - **Tespit Edilen CVE:** ${article.cves.map(c => `\`${c}\``).join(', ')}` : '',
       '',
@@ -1150,11 +1408,11 @@ async function saveArticleAsNote(app, plugin, article, silent = false, cachedTex
       '',
       '---',
       '',
-      '## 🧑‍💻 SOC & Tehdit Analisti Değerlendirmesi',
-      '- [ ] Bu zafiyet veya tehdit kurum içi/müşteri varlıklarımızı (Asset) etkiliyor mu?',
-      '- [ ] Aktif istismar (Exploited in the wild / PoC) mevcut mu?',
-      '- [ ] Resmi yama (Patch) veya geçici savunma kuralı (WAF/Snort) mevcut mu?',
-      '- [ ] SIEM / EDR loglarında ilgili IoC (Tehdit Göstergesi) taraması yapıldı mı?',
+      '## 🧑‍💻 Senior Pentester & SOC Öğrenci Kontrol Listesi',
+      '- [ ] Bu zafiyet bir öğrenci labında (PortSwigger Web Security Academy / Metasploitable / TryHackMe) simüle edilebilir mi?',
+      '- [ ] Zafiyetin sömürülme vektörü nedir? (Ağ paketi, kimlik doğrulanmamış HTTP isteği, yerel komut satırı vb.)',
+      '- [ ] Aktif istismar (PoC / Metasploit modülü) mevcut mu?',
+      '- [ ] Savunma tarafı: Yama (patch) yoksa geçici hafifletme (Snort / WAF / YARA) nasıl yazılır?',
       '',
       '---',
       '',
@@ -1163,9 +1421,9 @@ async function saveArticleAsNote(app, plugin, article, silent = false, cachedTex
       'START',
       'Temel',
       'TARGET DECK: cybersec',
-      `Ön: [Tehdit İstihbaratı] ${article.title.replace(/"/g, '')} zafiyetinin/olayının temel sebebi ve etkisi nedir?`,
-      `Geri: **Özet:** ${cleanDesc}<br>• **Kaynak:** ${article.source}${article.cves.length > 0 ? `<br>• **İlgili CVE:** ${article.cves.join(', ')}` : ''}`,
-      `Tags: from_obsidian, cybersec, threat_intel, ${article.sourceId}`,
+      `Ön: [Tehdit İstihbaratı / Öğrenci Puanı: ${rank.score}/10] ${article.title.replace(/"/g, '')} zafiyetinin/olayının temel sömürü mekanizması ve öğrenci için önemi nedir?`,
+      `Geri: **Öncelik Puanı:** ${rank.score}/10 (${rank.tierLabel})<br>• **Analiz:** ${rank.reason}<br>• **Özet:** ${cleanDesc}<br>• **Kaynak:** ${article.source}${article.cves.length > 0 ? `<br>• **İlgili CVE:** ${article.cves.join(', ')}` : ''}`,
+      `Tags: from_obsidian, cybersec, threat_intel, ${article.sourceId}, rank_${Math.floor(rank.score)}`,
       'END'
     ].filter(x => x !== undefined).join('\n');
 
@@ -1239,6 +1497,18 @@ class CyberSecPulseSettingTab extends PluginSettingTab {
           await this.plugin.saveSettings();
         }));
 
+    new Setting(containerEl)
+      .setName('Varsayılan Sıralama (Default Sort)')
+      .setDesc('Akış ilk açıldığında haberlerin nasıl sıralanacağını belirler')
+      .addDropdown(drop => drop
+        .addOption('rank', '▲ Öğrenci Puanı (Önce En Kritikler)')
+        .addOption('date', '🕒 En Yeni (Tarihe Göre)')
+        .setValue(this.plugin.settings.defaultSortBy || 'rank')
+        .onChange(async (val) => {
+          this.plugin.settings.defaultSortBy = val;
+          await this.plugin.saveSettings();
+        }));
+
     containerEl.createEl('h3', { text: 'Otomatik Not Alma ve Arşivleme (Auto-Clipper)' });
 
     new Setting(containerEl)
@@ -1248,6 +1518,18 @@ class CyberSecPulseSettingTab extends PluginSettingTab {
         .setValue(this.plugin.settings.autoSaveEnabled)
         .onChange(async (val) => {
           this.plugin.settings.autoSaveEnabled = val;
+          await this.plugin.saveSettings();
+        }));
+
+    new Setting(containerEl)
+      .setName('Minimum Öğrenci Puan Şartı (Min Rank for Auto-Save)')
+      .setDesc('Yalnızca puanı bu eşiğin üzerinde olan yüksek öncelikli haberleri otomatik kaydet (Örn: 8.5 MUST-READ)')
+      .addSlider(slider => slider
+        .setLimits(5.0, 9.5, 0.5)
+        .setValue(this.plugin.settings.autoSaveMinRank || 8.5)
+        .setDynamicTooltip()
+        .onChange(async (val) => {
+          this.plugin.settings.autoSaveMinRank = val;
           await this.plugin.saveSettings();
         }));
 

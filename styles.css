@@ -1,25 +1,108 @@
-/* CyberSec Pulse - Ultra-Minimalist Threat Radar & News Ticker */
+/* ==========================================================================
+   CyberSec Pulse - Minimalist Monochrome (Matte Black & Slate/Charcoal) Theme
+   High-contrast, zero-distraction, brutalist-minimal threat intelligence radar.
+   ========================================================================== */
+
+:root {
+  /* Minimalist Gray & Black Core Palette */
+  --cp-bg: #0d0e10;
+  --cp-card-bg: #151619;
+  --cp-card-hover: #1a1b1f;
+  --cp-border: #232529;
+  --cp-border-subtle: #1c1d21;
+  --cp-border-focus: #3f424a;
+  --cp-text-title: #f4f4f5;
+  --cp-text-body: #a1a1aa;
+  --cp-text-muted: #71717a;
+  --cp-text-faint: #52525b;
+  --cp-highlight: #ffffff;
+  --cp-accent: #d4d4d8;
+  --cp-accent-bg: rgba(255, 255, 255, 0.04);
+  --cp-accent-hover: rgba(255, 255, 255, 0.09);
+  --cp-guidance-bg: #131417;
+  --cp-guidance-border: #52525b;
+  --cp-row-hover: #18191d;
+  --cp-active-row: #1d1e23;
+  --cp-active-indicator: #e4e4e7;
+  --cp-success: #34d399;
+  --cp-success-bg: rgba(52, 211, 153, 0.12);
+  --cp-success-border: rgba(52, 211, 153, 0.35);
+}
+
+/* Dark Theme Variables */
+.theme-dark .cybersec-pulse-container {
+  --cp-bg: #0d0e10;
+  --cp-card-bg: #151619;
+  --cp-card-hover: #1a1b1f;
+  --cp-border: #232529;
+  --cp-border-subtle: #1c1d21;
+  --cp-border-focus: #3f424a;
+  --cp-text-title: #f4f4f5;
+  --cp-text-body: #a1a1aa;
+  --cp-text-muted: #71717a;
+  --cp-text-faint: #52525b;
+  --cp-highlight: #ffffff;
+  --cp-accent: #d4d4d8;
+  --cp-accent-bg: rgba(255, 255, 255, 0.04);
+  --cp-accent-hover: rgba(255, 255, 255, 0.09);
+  --cp-guidance-bg: #131417;
+  --cp-guidance-border: #52525b;
+  --cp-row-hover: #18191d;
+  --cp-active-row: #1d1e23;
+  --cp-active-indicator: #e4e4e7;
+}
+
+/* Light Theme Variables (Clean Apple / Vercel Monochrome) */
+.theme-light .cybersec-pulse-container {
+  --cp-bg: #fafafa;
+  --cp-card-bg: #ffffff;
+  --cp-card-hover: #f4f4f5;
+  --cp-border: #e4e4e7;
+  --cp-border-subtle: #f0f0f2;
+  --cp-border-focus: #a1a1aa;
+  --cp-text-title: #18181b;
+  --cp-text-body: #3f3f46;
+  --cp-text-muted: #71717a;
+  --cp-text-faint: #a1a1aa;
+  --cp-highlight: #09090b;
+  --cp-accent: #27272a;
+  --cp-accent-bg: rgba(0, 0, 0, 0.04);
+  --cp-accent-hover: rgba(0, 0, 0, 0.08);
+  --cp-guidance-bg: #f4f4f5;
+  --cp-guidance-border: #71717a;
+  --cp-row-hover: #f4f4f5;
+  --cp-active-row: #ebecef;
+  --cp-active-indicator: #18181b;
+  --cp-success: #059669;
+  --cp-success-bg: rgba(5, 150, 105, 0.1);
+  --cp-success-border: rgba(5, 150, 105, 0.3);
+}
 
 .cybersec-pulse-container {
   display: flex;
   flex-direction: column;
   height: 100%;
-  padding: 10px 12px;
+  padding: 8px 10px;
   box-sizing: border-box;
-  font-family: var(--font-interface);
-  gap: 10px;
-  color: var(--text-normal);
-  background: var(--background-primary);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Inter", var(--font-interface), sans-serif;
+  gap: 8px;
   overflow: hidden;
+  line-height: 1.4;
+  background: var(--cp-bg);
+  color: var(--cp-text-body);
 }
 
-/* 1. Minimal Header */
+/* ==========================================================================
+   1. Minimalist Monochrome Header Bar
+   ========================================================================== */
 .cybersec-pulse-header {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  padding-bottom: 8px;
-  border-bottom: 1px solid var(--background-modifier-border);
+  gap: 6px;
+  background: var(--cp-card-bg);
+  padding: 6px 8px;
+  border-radius: 4px;
+  border: 1px solid var(--cp-border);
 }
 
 .cybersec-pulse-topbar {
@@ -31,39 +114,61 @@
 .cybersec-pulse-brand {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
+}
+
+/* Minimalist Monogram Badge [CP] */
+.cybersec-hn-logo {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  background: var(--cp-border);
+  color: var(--cp-highlight);
+  font-family: var(--font-monospace);
+  font-size: 10px;
+  font-weight: 700;
+  border: 1px solid var(--cp-border-focus);
+  border-radius: 3px;
+  line-height: 1;
 }
 
 .cybersec-pulse-title {
   font-size: 0.82em;
   font-weight: 700;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: var(--text-normal);
+  color: var(--cp-text-title);
   font-family: var(--font-monospace);
+}
+
+.theme-dark .cybersec-pulse-title {
+  color: var(--cp-text-title);
 }
 
 .cybersec-pulse-status {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  font-size: 0.68em;
+  gap: 4px;
+  font-size: 0.65em;
   font-family: var(--font-monospace);
   text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: var(--text-faint);
+  color: var(--cp-text-faint);
+  font-weight: 600;
+  margin-left: 2px;
 }
 
 .cybersec-pulse-status-dot {
-  width: 6px;
-  height: 6px;
+  width: 5px;
+  height: 5px;
   border-radius: 50%;
   background: #10b981;
-  box-shadow: 0 0 6px rgba(16, 185, 129, 0.4);
+  box-shadow: 0 0 5px rgba(16, 185, 129, 0.5);
 }
 
 .cybersec-pulse-status-dot.paused {
-  background: var(--text-muted);
+  background: var(--cp-text-faint);
   box-shadow: none;
 }
 
@@ -73,52 +178,98 @@
   gap: 4px;
 }
 
-.cybersec-icon-btn {
-  background: transparent;
-  border: 1px solid transparent;
-  border-radius: 4px;
-  padding: 4px;
+/* Sleek Minimalist Controls */
+.cybersec-hn-btn {
+  background: var(--cp-accent-bg);
+  border: 1px solid var(--cp-border);
+  border-radius: 3px;
+  padding: 2px 6px;
+  font-size: 0.72em;
+  font-family: var(--font-monospace);
+  font-weight: 600;
   cursor: pointer;
-  color: var(--text-muted);
+  color: var(--cp-text-body);
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  line-height: 1;
-  transition: all 0.15s ease;
+  transition: all 0.12s ease;
 }
 
-.cybersec-icon-btn:hover {
-  background: var(--background-modifier-hover);
-  color: var(--text-normal);
-  border-color: var(--background-modifier-border);
+.cybersec-hn-btn:hover {
+  background: var(--cp-accent-hover);
+  border-color: var(--cp-border-focus);
+  color: var(--cp-highlight);
 }
 
-.cybersec-icon-btn svg {
-  width: 14px;
-  height: 14px;
+.cybersec-hn-btn svg {
+  width: 12px;
+  height: 12px;
 }
 
-/* 2. Rotating Headline Stage ("Haberler Sırayla Dönsün") */
+.cybersec-sort-btn {
+  letter-spacing: 0.04em;
+}
+
+/* Minimalist Subnav (all | must-read | cisa | ...) */
+.cybersec-hn-subnav {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.72em;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  color: var(--cp-text-muted);
+  padding-top: 4px;
+  border-top: 1px solid var(--cp-border-subtle);
+}
+
+.cybersec-hn-pipe {
+  color: var(--cp-border-focus);
+  opacity: 0.5;
+  user-select: none;
+}
+
+.cybersec-hn-navlink {
+  cursor: pointer;
+  color: var(--cp-text-muted);
+  text-decoration: none;
+  font-weight: 500;
+  transition: color 0.12s ease;
+}
+
+.cybersec-hn-navlink:hover {
+  color: var(--cp-highlight);
+  text-decoration: none;
+}
+
+.cybersec-hn-navlink.is-active {
+  font-weight: 600;
+  color: var(--cp-highlight);
+  border-bottom: 1px solid var(--cp-highlight);
+}
+
+/* ==========================================================================
+   2. Rotator Stage Card
+   ========================================================================== */
 .cybersec-rotator-wrapper {
   display: flex;
   flex-direction: column;
-  position: relative;
-  background: var(--background-secondary);
-  border: 1px solid var(--background-modifier-border);
-  border-radius: 6px;
+  background: var(--cp-card-bg);
+  border: 1px solid var(--cp-border);
+  border-radius: 4px;
   overflow: hidden;
+  box-shadow: none !important;
   transition: border-color 0.15s ease;
 }
 
 .cybersec-rotator-wrapper:hover {
-  border-color: var(--background-modifier-border-hover);
+  border-color: var(--cp-border-focus);
 }
 
-/* Linear Progress Bar for Auto-Rotation */
 .cybersec-progress-track {
   width: 100%;
   height: 2px;
-  background: var(--background-modifier-border);
+  background: var(--cp-border-subtle);
   position: relative;
   overflow: hidden;
 }
@@ -126,36 +277,20 @@
 .cybersec-progress-bar {
   height: 100%;
   width: 0%;
-  background: var(--interactive-accent);
-  transition: width 0.1s linear;
+  background: var(--cp-highlight);
+  transition: width 0.2s linear;
 }
 
 .cybersec-progress-bar.is-paused {
-  background: var(--text-muted);
-  opacity: 0.6;
+  background: var(--cp-text-faint);
 }
 
 .cybersec-rotator-card {
-  padding: 10px 12px;
+  padding: 8px 10px;
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  min-height: 140px;
-}
-
-.cybersec-rotator-card.fade-in {
-  animation: cybersecFadeIn 0.22s ease-out;
-}
-
-@keyframes cybersecFadeIn {
-  from {
-    opacity: 0.25;
-    transform: translateY(2px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  gap: 6px;
+  min-height: 130px;
 }
 
 .cybersec-rotator-meta {
@@ -163,67 +298,59 @@
   justify-content: space-between;
   align-items: center;
   font-size: 0.72em;
-  font-family: var(--font-monospace);
 }
 
 .cybersec-rotator-meta-left {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 5px;
+  flex-wrap: wrap;
 }
 
-.cybersec-source-tag {
-  font-size: 0.68em;
-  font-weight: 600;
+/* Score Pill (▲ 9.8/10) */
+.cybersec-hn-score-pill {
   font-family: var(--font-monospace);
+  font-weight: 700;
+  font-size: 0.88em;
+  color: var(--cp-highlight);
+  letter-spacing: 0.02em;
+  background: var(--cp-accent-bg);
+  border: 1px solid var(--cp-border);
+  padding: 0 5px;
+  border-radius: 2px;
+}
+
+.cybersec-hn-tier-tag {
+  font-size: 0.82em;
+  font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
-  padding: 1px 5px;
-  border-radius: 3px;
-  border: 1px solid var(--background-modifier-border);
-  color: var(--text-muted);
-  background: var(--background-primary);
+  letter-spacing: 0.03em;
 }
 
-.cybersec-source-tag.cisa {
-  color: #ef4444;
-  border-color: rgba(239, 68, 68, 0.25);
-  background: rgba(239, 68, 68, 0.05);
+.cybersec-hn-tier-tag.must-read {
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  padding: 0 4px;
+  border-radius: 2px;
+  font-weight: 700;
 }
 
-.cybersec-source-tag.thn {
-  color: #a855f7;
-  border-color: rgba(168, 85, 247, 0.25);
-  background: rgba(168, 85, 247, 0.05);
+.cybersec-hn-tier-tag.high {
+  color: #d4d4d8;
 }
 
-.cybersec-source-tag.bleeping {
-  color: #0284c7;
-  border-color: rgba(2, 132, 199, 0.25);
-  background: rgba(2, 132, 199, 0.05);
+.cybersec-hn-tier-tag.medium {
+  color: var(--cp-text-muted);
 }
 
-.cybersec-source-tag.portswigger {
-  color: #f97316;
-  border-color: rgba(249, 115, 22, 0.25);
-  background: rgba(249, 115, 22, 0.05);
-}
-
-.cybersec-source-tag.netsec {
-  color: #10b981;
-  border-color: rgba(16, 185, 129, 0.25);
-  background: rgba(16, 185, 129, 0.05);
-}
-
-.cybersec-source-tag.usom {
-  color: #dc2626;
-  border-color: rgba(220, 38, 38, 0.25);
-  background: rgba(220, 38, 38, 0.05);
+.cybersec-hn-tier-tag.low {
+  color: var(--cp-text-faint);
 }
 
 .cybersec-timestamp {
-  color: var(--text-faint);
-  font-size: 0.95em;
+  color: var(--cp-text-muted);
+  font-size: 0.88em;
 }
 
 .cybersec-rotator-nav {
@@ -233,54 +360,83 @@
 }
 
 .cybersec-counter {
-  font-size: 0.95em;
-  color: var(--text-faint);
-  margin-right: 4px;
+  font-size: 0.85em;
+  font-family: var(--font-monospace);
+  color: var(--cp-text-faint);
+  margin-right: 2px;
 }
 
 .cybersec-rotator-btn {
   background: transparent;
-  border: 1px solid var(--background-modifier-border);
-  border-radius: 3px;
-  width: 20px;
-  height: 20px;
+  border: 1px solid var(--cp-border);
+  border-radius: 2px;
+  width: 18px;
+  height: 18px;
   padding: 0;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  color: var(--text-muted);
-  transition: all 0.15s ease;
+  color: var(--cp-text-muted);
+  transition: all 0.12s ease;
 }
 
 .cybersec-rotator-btn:hover {
-  background: var(--background-modifier-hover);
-  color: var(--text-normal);
+  background: var(--cp-card-hover);
+  color: var(--cp-highlight);
+  border-color: var(--cp-border-focus);
 }
 
 .cybersec-rotator-btn svg {
-  width: 12px;
-  height: 12px;
+  width: 11px;
+  height: 11px;
 }
 
 .cybersec-rotator-title {
-  font-size: 0.92em;
+  font-size: 0.94em;
   font-weight: 600;
-  color: var(--text-normal);
+  color: var(--cp-text-title);
   line-height: 1.35;
   cursor: pointer;
   margin: 0;
-  transition: color 0.15s ease;
+  transition: color 0.12s ease;
 }
 
 .cybersec-rotator-title:hover {
-  color: var(--text-accent);
+  color: var(--cp-highlight);
+  text-decoration: underline;
+}
+
+/* Student Assessment Guidance Callout (Charcoal / Slate Minimalist) */
+.cybersec-student-guidance {
+  background: var(--cp-guidance-bg);
+  border-left: 3px solid var(--cp-guidance-border);
+  border-top: 1px solid var(--cp-border);
+  border-right: 1px solid var(--cp-border);
+  border-bottom: 1px solid var(--cp-border);
+  border-radius: 3px;
+  padding: 5px 8px;
+  font-size: 0.74em;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.cybersec-guidance-head {
+  font-weight: 600;
+  color: var(--cp-highlight);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+.cybersec-guidance-body {
+  color: var(--cp-text-body);
+  line-height: 1.35;
 }
 
 .cybersec-rotator-desc {
   font-size: 0.78em;
-  color: var(--text-muted);
-  line-height: 1.45;
+  color: var(--cp-text-muted);
+  line-height: 1.4;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
@@ -292,154 +448,118 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-top: 4px;
-  padding-top: 6px;
-  border-top: 1px solid var(--background-modifier-border);
+  margin-top: 2px;
+  padding-top: 5px;
+  border-top: 1px solid var(--cp-border-subtle);
 }
 
 .cybersec-cve-group {
   display: flex;
   flex-wrap: wrap;
-  gap: 4px;
+  gap: 3px;
 }
 
 .cybersec-cve-chip {
   font-family: var(--font-monospace);
   font-size: 0.68em;
   font-weight: 600;
-  color: #ef4444;
+  color: #f87171;
   background: rgba(239, 68, 68, 0.08);
-  border: 1px solid rgba(239, 68, 68, 0.2);
-  padding: 1px 4px;
-  border-radius: 3px;
+  border: 1px solid rgba(239, 68, 68, 0.22);
+  padding: 0 4px;
+  border-radius: 2px;
+}
+
+.theme-dark .cybersec-cve-chip {
+  color: #fca5a5;
+  border-color: rgba(239, 68, 68, 0.3);
+  background: rgba(239, 68, 68, 0.1);
 }
 
 .cybersec-action-links {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
 }
 
-.cybersec-text-btn {
-  background: transparent;
-  border: none;
-  padding: 2px 4px;
-  font-size: 0.74em;
+.cybersec-hn-action-btn {
+  background: var(--cp-accent-bg);
+  border: 1px solid var(--cp-border);
+  border-radius: 2px;
+  padding: 2px 7px;
+  font-size: 0.72em;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  color: var(--cp-text-body);
   cursor: pointer;
-  color: var(--text-muted);
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  border-radius: 3px;
-  transition: all 0.15s ease;
-  font-family: var(--font-interface);
+  transition: all 0.12s ease;
 }
 
-.cybersec-text-btn:hover {
-  color: var(--text-normal);
-  background: var(--background-modifier-hover);
+.cybersec-hn-action-btn:hover {
+  color: var(--cp-highlight);
+  border-color: var(--cp-border-focus);
+  background: var(--cp-accent-hover);
 }
 
-.cybersec-text-btn.accent {
-  color: var(--interactive-accent);
-}
-
-.cybersec-text-btn.accent:hover {
-  color: var(--text-on-accent);
-  background: var(--interactive-accent);
-}
-
-.cybersec-text-btn.save-action {
-  color: var(--text-accent);
-  background: rgba(var(--interactive-accent-rgb), 0.1);
-  padding: 3px 8px;
+.cybersec-hn-action-btn.is-saved {
+  color: var(--cp-success);
+  border-color: var(--cp-success-border);
+  background: var(--cp-success-bg);
   font-weight: 600;
-  border-radius: 4px;
 }
 
-.cybersec-text-btn.save-action:hover {
-  background: var(--interactive-accent);
-  color: var(--text-on-accent);
+.theme-dark .cybersec-hn-action-btn.is-saved {
+  color: var(--cp-success);
+  border-color: var(--cp-success-border);
+  background: var(--cp-success-bg);
 }
 
-.cybersec-text-btn.save-action.is-saved {
-  color: #10b981;
-  background: rgba(16, 185, 129, 0.12);
-}
-
-.cybersec-text-btn svg {
-  width: 12px;
-  height: 12px;
-}
-
-/* 3. Search & Minimal Filter Chips */
+/* ==========================================================================
+   3. Search Bar
+   ========================================================================== */
 .cybersec-filter-area {
   display: flex;
   flex-direction: column;
-  gap: 6px;
 }
 
 .cybersec-search-input {
   width: 100%;
-  font-size: 0.78em;
+  font-size: 0.76em;
   padding: 5px 8px;
-  border: 1px solid var(--background-modifier-border);
-  background: var(--background-primary);
-  border-radius: 4px;
-  color: var(--text-normal);
+  border: 1px solid var(--cp-border);
+  background: var(--cp-card-bg);
+  border-radius: 3px;
+  color: var(--cp-text-title);
   box-sizing: border-box;
   outline: none;
-  font-family: var(--font-interface);
-  transition: border-color 0.15s ease;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  transition: border-color 0.12s ease;
+}
+
+.cybersec-search-input::placeholder {
+  color: var(--cp-text-faint);
 }
 
 .cybersec-search-input:focus {
-  border-color: var(--interactive-accent);
+  border-color: var(--cp-border-focus);
+  box-shadow: 0 0 0 1px var(--cp-border-focus);
 }
 
-.cybersec-filter-chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 3px;
-}
-
-.cybersec-filter-chip {
-  background: transparent;
-  border: 1px solid transparent;
-  color: var(--text-faint);
-  font-size: 0.7em;
-  font-family: var(--font-monospace);
-  padding: 2px 6px;
-  border-radius: 3px;
-  cursor: pointer;
-  text-transform: lowercase;
-  transition: all 0.12s ease;
-}
-
-.cybersec-filter-chip:hover {
-  color: var(--text-normal);
-  background: var(--background-modifier-hover);
-}
-
-.cybersec-filter-chip.is-active {
-  color: var(--text-normal);
-  background: var(--background-modifier-hover);
-  border-color: var(--background-modifier-border);
-  font-weight: 600;
-}
-
-/* 4. Stream / Wire Feed (Below the Rotator) */
+/* ==========================================================================
+   4. Stream / Wire Feed Header
+   ========================================================================== */
 .cybersec-wire-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  font-size: 0.7em;
+  font-size: 0.68em;
   font-family: var(--font-monospace);
+  font-weight: 700;
   text-transform: uppercase;
-  color: var(--text-faint);
+  color: var(--cp-text-faint);
   letter-spacing: 0.05em;
-  margin-top: 4px;
   padding: 0 2px;
+  border-bottom: 1px solid var(--cp-border-subtle);
+  padding-bottom: 3px;
 }
 
 .cybersec-wire-list {
@@ -448,217 +568,306 @@
   display: flex;
   flex-direction: column;
   gap: 2px;
-  padding-right: 2px;
 }
 
+/* Custom Minimalist Scrollbar */
+.cybersec-wire-list::-webkit-scrollbar,
+.cybersec-reader-content::-webkit-scrollbar {
+  width: 4px;
+}
+
+.cybersec-wire-list::-webkit-scrollbar-thumb,
+.cybersec-reader-content::-webkit-scrollbar-thumb {
+  background: var(--cp-border);
+  border-radius: 2px;
+}
+
+.cybersec-wire-list::-webkit-scrollbar-thumb:hover,
+.cybersec-reader-content::-webkit-scrollbar-thumb:hover {
+  background: var(--cp-border-focus);
+}
+
+/* ==========================================================================
+   5. Wire Story Rows
+   ========================================================================== */
 .cybersec-wire-row {
   display: flex;
   align-items: flex-start;
-  gap: 8px;
-  padding: 6px 8px;
-  border-radius: 4px;
+  gap: 5px;
+  padding: 5px 6px;
+  border-radius: 3px;
   cursor: pointer;
-  border-left: 2px solid transparent;
   background: transparent;
-  transition: all 0.12s ease;
+  border-left: 2px solid transparent;
+  border-bottom: 1px solid var(--cp-border-subtle);
+  transition: background 0.1s ease, border-color 0.1s ease;
 }
 
 .cybersec-wire-row:hover {
-  background: var(--background-secondary);
+  background: var(--cp-row-hover);
 }
 
 .cybersec-wire-row.is-active {
-  background: var(--background-secondary);
-  border-left-color: var(--interactive-accent);
+  background: var(--cp-active-row);
+  border-left-color: var(--cp-active-indicator);
 }
 
-.cybersec-wire-row-indicator {
-  width: 4px;
-  height: 4px;
-  border-radius: 50%;
-  background: transparent;
-  margin-top: 6px;
-  flex-shrink: 0;
+.cybersec-hn-rank-num {
+  font-size: 0.74em;
+  font-family: var(--font-monospace);
+  color: var(--cp-text-faint);
+  min-width: 16px;
+  text-align: right;
+  line-height: 1.4;
 }
 
-.cybersec-wire-row.is-active .cybersec-wire-row-indicator {
-  background: var(--interactive-accent);
+.cybersec-hn-vote-box {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  font-family: var(--font-monospace);
+  line-height: 1.4;
+}
+
+.cybersec-hn-upvote {
+  color: var(--cp-text-muted);
+  font-size: 0.7em;
+}
+
+.cybersec-hn-score {
+  font-size: 0.74em;
+  font-weight: 700;
+}
+
+.cybersec-hn-score.must-read {
+  color: var(--cp-highlight);
+}
+
+.cybersec-hn-score.high {
+  color: #d4d4d8;
+}
+
+.cybersec-hn-score.medium {
+  color: var(--cp-text-body);
+}
+
+.cybersec-hn-score.low {
+  color: var(--cp-text-muted);
 }
 
 .cybersec-wire-body {
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 1px;
   min-width: 0;
 }
 
-.cybersec-wire-top {
+.cybersec-wire-headline {
   display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 0.68em;
-  font-family: var(--font-monospace);
+  align-items: baseline;
+  gap: 4px;
+  flex-wrap: wrap;
 }
 
 .cybersec-wire-title {
   font-size: 0.82em;
-  color: var(--text-normal);
+  color: var(--cp-text-title);
   line-height: 1.35;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  margin: 0;
+  font-weight: 500;
 }
 
 .cybersec-wire-row:hover .cybersec-wire-title {
-  color: var(--text-accent);
+  color: var(--cp-highlight);
 }
 
 .cybersec-wire-row.is-active .cybersec-wire-title {
   font-weight: 600;
+  color: var(--cp-highlight);
+}
+
+.cybersec-hn-domain {
+  font-size: 0.7em;
+  color: var(--cp-text-faint);
+  font-family: var(--font-monospace);
+}
+
+.cybersec-hn-subtext {
+  font-size: 0.68em;
+  color: var(--cp-text-muted);
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.cybersec-hn-subtext .cybersec-hn-pipe {
+  color: var(--cp-border-focus);
+  opacity: 0.5;
+}
+
+.cybersec-hn-subtier {
+  font-weight: 600;
+}
+
+.cybersec-hn-subtier.must-read {
+  color: var(--cp-highlight);
+}
+
+.cybersec-hn-subtier.high {
+  color: #d4d4d8;
+}
+
+.cybersec-hn-reason {
+  color: var(--cp-text-faint);
 }
 
 .cybersec-wire-action {
-  display: flex;
-  align-items: center;
   margin-left: auto;
   opacity: 0.35;
-  transition: opacity 0.15s ease, transform 0.15s ease;
+  transition: opacity 0.12s ease;
 }
 
 .cybersec-wire-row:hover .cybersec-wire-action {
   opacity: 1;
 }
 
-.wire-save-btn {
+.cybersec-hn-mini-btn {
   background: transparent;
-  border: 1px solid transparent;
-  border-radius: 4px;
-  padding: 3px 5px;
+  border: 1px solid var(--cp-border);
+  border-radius: 2px;
+  padding: 0 4px;
+  font-size: 0.72em;
+  font-family: var(--font-monospace);
+  color: var(--cp-text-muted);
   cursor: pointer;
-  color: var(--text-muted);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.15s ease;
+  transition: all 0.12s ease;
 }
 
-.wire-save-btn:hover {
-  background: var(--background-modifier-hover);
-  color: var(--text-accent);
-  border-color: var(--background-modifier-border);
+.cybersec-hn-mini-btn:hover {
+  border-color: var(--cp-border-focus);
+  color: var(--cp-highlight);
+  background: var(--cp-accent-hover);
 }
 
-.wire-save-btn.is-saved {
-  color: #10b981 !important;
+.cybersec-hn-mini-btn.is-saved {
+  color: var(--cp-success) !important;
+  border-color: var(--cp-success-border) !important;
+  background: var(--cp-success-bg);
   opacity: 1 !important;
 }
 
-.wire-save-btn svg {
-  width: 13px;
-  height: 13px;
+.theme-dark .cybersec-hn-mini-btn.is-saved {
+  color: var(--cp-success) !important;
+  border-color: var(--cp-success-border) !important;
+  background: var(--cp-success-bg);
 }
 
 .cybersec-wire-empty {
   text-align: center;
-  padding: 30px 10px;
-  font-size: 0.8em;
-  color: var(--text-faint);
+  padding: 24px 8px;
+  font-size: 0.78em;
+  color: var(--cp-text-faint);
   font-family: var(--font-monospace);
 }
 
-/* 5. Minimalist In-App Reader Modal */
+/* ==========================================================================
+   6. In-App Article Reader Modal (Monochrome Darkroom Style)
+   ========================================================================== */
 .cybersec-reader-modal {
   max-width: 720px;
-  padding: 24px;
-  font-family: var(--font-text);
+  padding: 20px;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  border-top: 2px solid var(--cp-border-focus);
+  background: var(--cp-bg);
 }
 
 .cybersec-reader-meta-bar {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding-bottom: 12px;
-  border-bottom: 1px solid var(--background-modifier-border);
-  margin-bottom: 16px;
-  font-size: 0.78em;
-  font-family: var(--font-monospace);
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--cp-border);
+  margin-bottom: 12px;
+  font-size: 0.75em;
+  color: var(--cp-text-muted);
 }
 
 .cybersec-reader-title {
-  font-size: 1.3em;
+  font-size: 1.25em;
   font-weight: 700;
   line-height: 1.3;
-  margin: 0 0 16px 0;
-  color: var(--text-normal);
+  margin: 0 0 12px 0;
+  color: var(--cp-text-title);
+}
+
+.cybersec-reader-modal .cybersec-student-guidance {
+  margin-bottom: 14px;
+  font-size: 0.8em;
 }
 
 .cybersec-reader-actions {
   display: flex;
   align-items: center;
-  gap: 10px;
-  margin-bottom: 20px;
+  gap: 8px;
+  margin-bottom: 16px;
 }
 
-.cybersec-reader-btn-save {
-  background: var(--interactive-accent);
-  color: var(--text-on-accent);
+.cybersec-hn-reader-btn {
+  background: var(--cp-card-bg);
+  color: var(--cp-highlight);
   font-weight: 600;
-  padding: 6px 14px;
-  border-radius: 6px;
-  border: none;
+  padding: 5px 12px;
+  border-radius: 3px;
+  border: 1px solid var(--cp-border-focus);
   cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 0.82em;
-  transition: all 0.15s ease;
+  font-size: 0.8em;
+  transition: all 0.12s ease;
 }
 
-.cybersec-reader-btn-save:hover {
-  filter: brightness(1.1);
+.cybersec-hn-reader-btn:hover {
+  background: var(--cp-card-hover);
+  border-color: var(--cp-highlight);
 }
 
-.cybersec-reader-btn-save.is-saved {
-  background: #10b981;
-  color: white;
+.cybersec-hn-reader-btn.is-saved {
+  background: var(--cp-success-bg);
+  border-color: var(--cp-success-border);
+  color: var(--cp-success);
 }
 
-.cybersec-reader-btn-open {
-  background: var(--background-modifier-hover);
-  color: var(--text-normal);
-  padding: 6px 12px;
-  border-radius: 6px;
-  border: 1px solid var(--background-modifier-border);
+.cybersec-hn-reader-btn-secondary {
+  background: transparent;
+  color: var(--cp-text-body);
+  padding: 5px 10px;
+  border-radius: 3px;
+  border: 1px solid var(--cp-border);
   cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 0.82em;
-  transition: all 0.15s ease;
+  font-size: 0.8em;
+  transition: all 0.12s ease;
 }
 
-.cybersec-reader-btn-open:hover {
-  border-color: var(--text-accent);
-  color: var(--text-accent);
+.cybersec-hn-reader-btn-secondary:hover {
+  border-color: var(--cp-border-focus);
+  color: var(--cp-highlight);
+  background: var(--cp-accent-hover);
 }
 
 .cybersec-reader-content {
-  line-height: 1.7;
-  font-size: 0.95em;
-  color: var(--text-normal);
+  line-height: 1.65;
+  font-size: 0.9em;
+  color: var(--cp-text-body);
   max-height: 60vh;
   overflow-y: auto;
   padding-right: 6px;
 }
 
 .cybersec-reader-content p {
-  margin: 0 0 14px 0;
+  margin: 0 0 12px 0;
 }
 
 .cybersec-reader-content a {
-  color: var(--text-accent);
+  color: var(--cp-highlight);
   text-decoration: underline;
 }
 
@@ -666,4 +875,9 @@
 .cybersec-reader-content code {
   font-family: var(--font-monospace);
   font-size: 0.88em;
+  background: var(--cp-card-bg);
+  border: 1px solid var(--cp-border);
+  color: var(--cp-highlight);
+  padding: 2px 4px;
+  border-radius: 2px;
 }
