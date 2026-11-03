@@ -19,7 +19,7 @@
   <a href="#-how-to-use">🚀 How to Use</a> •
   <a href="#️-settings--customization">⚙️ Settings</a> •
   <a href="#-türkçe-kurulum-özeti">🇹🇷 Türkçe Rehber</a> •
-  <a href="https://github.com/Nasuhii/cybersec-pulse/releases/latest">📥 Download v1.0.2</a>
+  <a href="https://github.com/Nasuhii/cybersec-pulse/releases/latest">📥 Download v1.0.3</a>
 </p>
 
 ---
@@ -115,9 +115,9 @@ If you prefer not to use BRAT, download the 3 plugin files directly:
 
 | File | Direct Download Link | Description |
 |:---|:---:|:---|
-| **`main.js`** | [📥 **Download `main.js`**](https://github.com/Nasuhii/cybersec-pulse/releases/download/1.0.2/main.js) | Main plugin logic & threat engine |
-| **`manifest.json`** | [📥 **Download `manifest.json`**](https://github.com/Nasuhii/cybersec-pulse/releases/download/1.0.2/manifest.json) | Plugin identification & metadata |
-| **`styles.css`** | [📥 **Download `styles.css`**](https://github.com/Nasuhii/cybersec-pulse/releases/download/1.0.2/styles.css) | Minimalist styles for light/dark themes |
+| **`main.js`** | [📥 **Download `main.js`**](https://github.com/Nasuhii/cybersec-pulse/releases/download/1.0.3/main.js) | Main plugin logic & threat engine |
+| **`manifest.json`** | [📥 **Download `manifest.json`**](https://github.com/Nasuhii/cybersec-pulse/releases/download/1.0.3/manifest.json) | Plugin identification & metadata |
+| **`styles.css`** | [📥 **Download `styles.css`**](https://github.com/Nasuhii/cybersec-pulse/releases/download/1.0.3/styles.css) | Minimalist styles for light/dark themes |
 
 > 🏷️ *View all version releases and notes:* [**Releases Page**](https://github.com/Nasuhii/cybersec-pulse/releases)
 
@@ -255,9 +255,9 @@ Navigate to **Settings → CyberSec Pulse**:
 
 ### 2. Doğrudan Dosya İndirerek Manuel Kurulum
 Aşağıdaki 3 dosyayı doğrudan indirin:
-- 📥 [**`main.js` İndir**](https://github.com/Nasuhii/cybersec-pulse/releases/download/1.0.2/main.js)
-- 📥 [**`manifest.json` İndir**](https://github.com/Nasuhii/cybersec-pulse/releases/download/1.0.2/manifest.json)
-- 📥 [**`styles.css` İndir**](https://github.com/Nasuhii/cybersec-pulse/releases/download/1.0.2/styles.css)
+- 📥 [**`main.js` İndir**](https://github.com/Nasuhii/cybersec-pulse/releases/download/1.0.3/main.js)
+- 📥 [**`manifest.json` İndir**](https://github.com/Nasuhii/cybersec-pulse/releases/download/1.0.3/manifest.json)
+- 📥 [**`styles.css` İndir**](https://github.com/Nasuhii/cybersec-pulse/releases/download/1.0.3/styles.css)
 
 Dosyaları kasanız içerisindeki `.obsidian/plugins/cybersec-pulse/` klasörüne yapıştırıp Obsidian'da eklentiyi aktifleştirin.
 
