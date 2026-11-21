@@ -64,6 +64,12 @@
 
 ## 🖥️ User Interface Overview
 
+<p align="center">
+  <img src="assets/cybersec-pulse-wire.jpg" alt="CyberSec Pulse Threat Wire & Rank View" width="46%" />
+  &nbsp;&nbsp;
+  <img src="assets/cybersec-pulse-reader.png" alt="CyberSec Pulse In-App Reader & Student Analysis" width="48%" />
+</p>
+
 ```text
 ┌─────────────────────────────────────────────────────────────┐
 │ 🛡️ CYBERSEC PULSE             ● LIVE       [ ⏸ ]  [ 🔄 ]    │
